@@ -89,6 +89,7 @@ import itertools
 import os
 import errno
 import numpy as np
+import warnings
 import logging
 logger = logging.getLogger('MDAnalysis.coordinates.XYZ')
 
@@ -202,6 +203,10 @@ class XYZWriter(base.WriterBase):
             atoms = obj.atoms
         except AttributeError:
             if isinstance(obj, base.Timestep):
+                warnings.warn(
+                    'Passing a Timestep to write is deprecated, and will be removed in 1.0; '
+                    'use either an AtomGroup or Universe',
+                    DeprecationWarning)
                 ts = obj
             else:
                 raise TypeError("No Timestep found in obj argument")
