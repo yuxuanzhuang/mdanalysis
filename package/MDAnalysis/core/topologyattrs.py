@@ -204,6 +204,7 @@ def _build_stub(method_name, method, attribute_name):
     stub_method.__doc__ = method.__doc__
     stub_method.__name__ = method_name
     stub_method.__signature__ = inspect.signature(method)
+    stub_method._required_topologyattrs = attribute_name
     return stub_method
 
 
@@ -253,7 +254,7 @@ class _TopologyAttrMeta(type):
     # register TopologyAttrs
     def __init__(cls, name, bases, classdict):
         type.__init__(type, name, bases, classdict)
-        for attr in ['attrname', 'singular']:
+        for attr in ['singular', 'attrname']:
             try:
                 attrname = classdict[attr]
             except KeyError:
