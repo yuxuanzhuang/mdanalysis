@@ -45,8 +45,14 @@ import itertools
 import numbers
 import numpy as np
 import warnings
-import inspect
 import textwrap
+
+# inspect.signature was added in python 3.3, earlier versions require
+# funcsigs as backport.
+try:
+    from inspect import signature as inspect_signature
+except ImportError:
+    from funcsigs import signature as inspect_signature
 
 from numpy.lib.utils import deprecate
 
@@ -211,7 +217,7 @@ def _build_stub(method_name, method, attribute_name):
     """.format(attribute_name))
     stub_method.__doc__ = annotation + method.__doc__
     stub_method.__name__ = method_name
-    stub_method.__signature__ = inspect.signature(method)
+    stub_method.__signature__ = inspect_signature(method)
     return stub_method
 
 
