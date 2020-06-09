@@ -191,7 +191,13 @@ import os
 import os.path
 import errno
 from contextlib import contextmanager
+
 import bz2
+from gsd import fl
+import gsd
+import gsd.hoomd
+import scipy.io.netcdf
+
 import gzip
 import re
 import io
@@ -264,6 +270,97 @@ def filename(name, ext=None, keep=False):
                 name = newname
     return name if isstream(name) else str(name)
 
+class FileIOPickable(io.FileIO):
+    def __init__(self, name):
+        super().__init__(name)
+
+    def __getstate__(self):
+        return self.tell(), self.name
+
+    def __setstate__(self, args):
+        name = args[1]
+        super().__init__(name)
+        self.seek(args[0])
+
+
+class TextIOPickable(io.TextIOWrapper):
+    def __init__(self, buffer):
+        super().__init__(buffer)
+        self.buffer_class = buffer.__class__
+
+    def __getstate__(self):
+        return self.tell(), self.name, self.buffer_class
+
+    def __setstate__(self, args):
+        name = args[1]
+        buffer_class = args[2]
+        buffer = buffer_class(name)
+        super().__init__(buffer)
+        self.seek(args[0])
+
+class BZ2Pickable(bz2.BZ2File):
+    def __getstate__(self):
+        return self.tell(), self._fp.name
+
+    def __setstate__(self, args):
+        super().__init__(args[1])
+        self.seek(args[0])
+
+class GzipPicklable(gzip.GzipFile):
+    def __getstate__(self):
+        return self.tell(), self.name
+    def __setstate__(self, args):
+        super().__init__(args[1])
+        self.seek(args[0])
+
+class GSDPickable(gsd.hoomd.HOOMDTrajectory):
+    def __getstate__(self):
+        return self.file.name, self.file.mode
+    def __setstate__(self, args):
+        gsdfileobj = fl.open(name=args[0],
+                             mode=args[1],
+                             application='gsd.hoomd ' + gsd.__version__,
+                             schema='hoomd',
+                             schema_version=[1,3])
+        return self.__init__(gsdfileobj)
+
+class NCDFPickable(scipy.io.netcdf.netcdf_file):
+    def __getstate__(self):
+        return self.filename, self.use_mmap
+    def __setstate__(self, args):
+        self.__init__(args[0], mmap=args[1])
+
+def pickle_open(name, mode):
+    buffer = FileIOPickable(name)
+    if mode == 'rb':
+        return buffer
+    elif mode == 'rt' or mode == 'r':
+        return TextIOPickable(buffer)
+
+
+def bz2_pickle_open(name, mode):
+    mode = mode.replace('t', '').replace('b', '')
+    return BZ2Pickable(name, mode)
+
+
+def gzip_pickle_open(name, mode):
+    gz_mode = mode.replace("t", "")
+    binary_file = GzipPicklable(name, gz_mode)
+    if "t" in mode:
+        return TextIOPickable(binary_file)
+    else:
+        return binary_file
+
+def gsd_pickle_open(name, mode):
+    gsdfileobj = fl.open(name=name,
+                         mode=mode,
+                         application='gsd.hoomd ' + gsd.__version__,
+                         schema='hoomd',
+                         schema_version=[1,3])
+    return GSDPickable(gsdfileobj)
+
+def ncdf_pickle_open(name, mmap):
+    return NCDFPickable(name, mmap=mmap)
 
 @contextmanager
 def openany(datasource, mode='rt', reset=True):
@@ -372,7 +469,8 @@ def anyopen(datasource, mode='rt', reset=True):
        behavior to return a tuple ``(stream, filename)``.
 
     """
-    handlers = {'bz2': bz2_open, 'gz': gzip.open, '': open}
+    write_handlers = {'bz2': bz2_open, 'gz': gzip.open, '': open }
+    read_handlers = {'bz2': bz2_pickle_open, 'gz': gzip_pickle_open, '': pickle_open }
 
     if mode.startswith('r'):
         if isstream(datasource):
@@ -395,7 +493,7 @@ def anyopen(datasource, mode='rt', reset=True):
             stream = None
             filename = datasource
             for ext in ('bz2', 'gz', ''):  # file == '' should be last
-                openfunc = handlers[ext]
+                openfunc = read_handlers[ext]
                 stream = _get_stream(datasource, openfunc, mode=mode)
                 if stream is not None:
                     break
@@ -416,7 +514,7 @@ def anyopen(datasource, mode='rt', reset=True):
                 ext = ext[1:]
             if not ext in ('bz2', 'gz'):
                 ext = ''  # anything else but bz2 or gz is just a normal file
-            openfunc = handlers[ext]
+            openfunc = write_handlers[ext]
             stream = openfunc(datasource, mode=mode)
             if stream is None:
                 raise IOError(errno.EIO, "Cannot open file or stream in mode={mode!r}.".format(**vars()), repr(filename))

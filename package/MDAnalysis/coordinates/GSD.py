@@ -50,9 +50,9 @@ from six import raise_from
 
 import numpy as np
 import os
-import gsd.hoomd
 
 from . import base
+from ..lib import util
 
 class GSDReader(base.ReaderBase):
     """Reader for the GSD format.
@@ -83,7 +83,7 @@ class GSDReader(base.ReaderBase):
     def open_trajectory(self) :
         """opens the trajectory file using gsd.hoomd module"""
         self._frame = -1
-        self._file = gsd.hoomd.open(self.filename,mode='rb')
+        self._file = util.gsd_pickle_open(self.filename,mode='rb')
 
     def close(self):
         """close reader"""
