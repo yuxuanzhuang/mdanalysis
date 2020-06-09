@@ -297,15 +297,25 @@ class TextIOPickable(io.TextIOWrapper):
         super().__init__(buffer, *state['_args'], **state['_kwargs'])
         self.seek(args[0])
 
+class BZ2Pickable(bz2.BZ2File):
+    def __getstate__(self):
+        return self.tell(), self._fp.name
+
+    def __setstate__(self, args):
+        super().__init__(args[1])
+        self.seek(args[0])
 
 def pickle_open(name, mode):
-    if mode.startswith('w') or mode.startswith('a'):
-        return open(name, mode)
     buffer = FileIOPickable(name, mode='rb')
     if mode == 'rb':
         return buffer
     elif mode == 'rt' or mode == 'r':
         return TextIOPickable(buffer)
+
+def bz2_pickle_open(name, mode):
+    mode = mode.replace('t', '').replace('b', '')
+    return BZ2Pickable(name, mode)
+
 
 @contextmanager
 def openany(datasource, mode='rt', reset=True):
@@ -414,7 +424,8 @@ def anyopen(datasource, mode='rt', reset=True):
        behavior to return a tuple ``(stream, filename)``.
 
     """
-    handlers = {'bz2': bz2_open, 'gz': gzip.open, '': pickle_open }
+    write_handlers = {'bz2': bz2_open, 'gz': gzip.open, '': open }
+    read_handlers = {'bz2': bz2_pickle_open, 'gz': gzip.open, '': pickle_open }
 
     if mode.startswith('r'):
         if isstream(datasource):
@@ -437,7 +448,7 @@ def anyopen(datasource, mode='rt', reset=True):
             stream = None
             filename = datasource
             for ext in ('bz2', 'gz', ''):  # file == '' should be last
-                openfunc = handlers[ext]
+                openfunc = read_handlers[ext]
                 stream = _get_stream(datasource, openfunc, mode=mode)
                 if stream is not None:
                     break
@@ -458,7 +469,7 @@ def anyopen(datasource, mode='rt', reset=True):
                 ext = ext[1:]
             if not ext in ('bz2', 'gz'):
                 ext = ''  # anything else but bz2 or gz is just a normal file
-            openfunc = handlers[ext]
+            openfunc = write_handlers[ext]
             stream = openfunc(datasource, mode=mode)
             if stream is None:
                 raise IOError(errno.EIO, "Cannot open file or stream in mode={mode!r}.".format(**vars()), repr(filename))
