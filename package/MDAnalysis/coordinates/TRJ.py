@@ -473,7 +473,7 @@ class NCDFReader(base.ReaderBase):
 
         super(NCDFReader, self).__init__(filename, **kwargs)
 
-        self.trjfile = scipy.io.netcdf.netcdf_file(self.filename,
+        self.trjfile = util.ncdf_pickle_open(self.filename,
                                                    mmap=self._mmap)
 
         # AMBER NetCDF files should always have a convention

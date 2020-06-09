@@ -191,10 +191,13 @@ import os
 import os.path
 import errno
 from contextlib import contextmanager
+
 import bz2
 from gsd import fl
 import gsd
 import gsd.hoomd
+import scipy.io.netcdf
+
 import gzip
 import re
 import io
@@ -321,6 +324,11 @@ class GSDPickable(gsd.hoomd.HOOMDTrajectory):
                              schema_version=[1,3])
         return self.__init__(gsdfileobj)
 
+class NCDFPickable(scipy.io.netcdf.netcdf_file):
+    def __getstate__(self):
+        return self.filename, self.use_mmap
+    def __setstate__(self, args):
+        self.__init__(args[0], mmap=args[1])
 
 def pickle_open(name, mode):
     buffer = FileIOPickable(name)
@@ -350,6 +358,10 @@ def gsd_pickle_open(name, mode):
                          schema='hoomd',
                          schema_version=[1,3])
     return GSDPickable(gsdfileobj)
+
+def ncdf_pickle_open(name, mmap):
+    return NCDFPickable(name, mmap=mmap)
+
 @contextmanager
 def openany(datasource, mode='rt', reset=True):
     """Context manager for :func:`anyopen`.
