@@ -299,6 +299,8 @@ class TextIOPickable(io.TextIOWrapper):
 
 
 def pickle_open(name, mode):
+    if mode.startswith('w') or mode.startswith('a'):
+        return open(name, mode)
     buffer = FileIOPickable(name, mode='rb')
     if mode == 'rb':
         return buffer
