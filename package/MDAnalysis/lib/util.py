@@ -264,6 +264,46 @@ def filename(name, ext=None, keep=False):
                 name = newname
     return name if isstream(name) else str(name)
 
+class FileIOPickable(io.FileIO):
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        self._args = args
+        self._kwargs = kwargs
+
+    def __getstate__(self):
+        return self.tell(), self.__dict__
+
+    def __setstate__(self, args):
+        state = args[1]
+        super().__init__(state['name'], *state['_args'], **state['_kwargs'])
+        self.seek(args[0])
+
+
+class TextIOPickable(io.TextIOWrapper):
+    def __init__(self, buffer, *args, **kwargs):
+        super().__init__(buffer, *args, **kwargs)
+        self._buffer_args = buffer.__dict__
+        self._args = args
+        self._kwargs = kwargs
+        
+    def __getstate__(self):
+        return self.tell(), self.__dict__
+
+    def __setstate__(self, args):
+        state = args[1]
+        buffer = FileIOPickable(state['_buffer_args']['name'],
+                                *state['_buffer_args']['_args'],
+                                **state['_buffer_args']['_kwargs'])
+        super().__init__(buffer, *state['_args'], **state['_kwargs'])
+        self.seek(args[0])
+
+
+def pickle_open(name, mode):
+    buffer = FileIOPickable(name, mode='rb')
+    if mode == 'rb':
+        return buffer
+    elif mode == 'rt' or mode == 'r':
+        return TextIOPickable(buffer)
 
 @contextmanager
 def openany(datasource, mode='rt', reset=True):
@@ -372,7 +412,7 @@ def anyopen(datasource, mode='rt', reset=True):
        behavior to return a tuple ``(stream, filename)``.
 
     """
-    handlers = {'bz2': bz2_open, 'gz': gzip.open, '': open}
+    handlers = {'bz2': bz2_open, 'gz': gzip.open, '': pickle_open }
 
     if mode.startswith('r'):
         if isstream(datasource):
