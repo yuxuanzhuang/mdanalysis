@@ -192,6 +192,9 @@ import os.path
 import errno
 from contextlib import contextmanager
 import bz2
+from gsd import fl
+import gsd
+import gsd.hoomd
 import gzip
 import re
 import io
@@ -300,12 +303,23 @@ class BZ2Pickable(bz2.BZ2File):
         super().__init__(args[1])
         self.seek(args[0])
 
-class Gzip_pickle(gzip.GzipFile):
+class GzipPicklable(gzip.GzipFile):
     def __getstate__(self):
         return self.tell(), self.name
     def __setstate__(self, args):
         super().__init__(args[1])
         self.seek(args[0])
+
+class GSDPickable(gsd.hoomd.HOOMDTrajectory):
+    def __getstate__(self):
+        return self.file.name, self.file.mode
+    def __setstate__(self, args):
+        gsdfileobj = fl.open(name=args[0],
+                             mode=args[1],
+                             application='gsd.hoomd ' + gsd.__version__,
+                             schema='hoomd',
+                             schema_version=[1,3])
+        return self.__init__(gsdfileobj)
 
 
 def pickle_open(name, mode):
@@ -323,13 +337,19 @@ def bz2_pickle_open(name, mode):
 
 def gzip_pickle_open(name, mode):
     gz_mode = mode.replace("t", "")
-    binary_file = Gzip_pickle(name, gz_mode)
+    binary_file = GzipPicklable(name, gz_mode)
     if "t" in mode:
         return TextIOPickable(binary_file)
     else:
         return binary_file
 
-
+def gsd_pickle_open(name, mode):
+    gsdfileobj = fl.open(name=name,
+                         mode=mode,
+                         application='gsd.hoomd ' + gsd.__version__,
+                         schema='hoomd',
+                         schema_version=[1,3])
+    return GSDPickable(gsdfileobj)
 @contextmanager
 def openany(datasource, mode='rt', reset=True):
     """Context manager for :func:`anyopen`.
