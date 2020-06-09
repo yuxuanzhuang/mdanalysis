@@ -265,36 +265,31 @@ def filename(name, ext=None, keep=False):
     return name if isstream(name) else str(name)
 
 class FileIOPickable(io.FileIO):
-    def __init__(self, name, *args, **kwargs):
-        super().__init__(name, *args, **kwargs)
-        self._args = args
-        self._kwargs = kwargs
+    def __init__(self, name):
+        super().__init__(name)
 
     def __getstate__(self):
-        return self.tell(), self.__dict__
+        return self.tell(), self.name
 
     def __setstate__(self, args):
-        state = args[1]
-        super().__init__(state['name'], *state['_args'], **state['_kwargs'])
+        name = args[1]
+        super().__init__(name)
         self.seek(args[0])
 
 
 class TextIOPickable(io.TextIOWrapper):
-    def __init__(self, buffer, *args, **kwargs):
-        super().__init__(buffer, *args, **kwargs)
-        self._buffer_args = buffer.__dict__
-        self._args = args
-        self._kwargs = kwargs
-        
+    def __init__(self, buffer):
+        super().__init__(buffer)
+        self.buffer_class = buffer.__class__
+
     def __getstate__(self):
-        return self.tell(), self.__dict__
+        return self.tell(), self.name, self.buffer_class
 
     def __setstate__(self, args):
-        state = args[1]
-        buffer = FileIOPickable(state['_buffer_args']['name'],
-                                *state['_buffer_args']['_args'],
-                                **state['_buffer_args']['_kwargs'])
-        super().__init__(buffer, *state['_args'], **state['_kwargs'])
+        name = args[1]
+        buffer_class = args[2]
+        buffer = buffer_class(name)
+        super().__init__(buffer)
         self.seek(args[0])
 
 class BZ2Pickable(bz2.BZ2File):
@@ -305,16 +300,34 @@ class BZ2Pickable(bz2.BZ2File):
         super().__init__(args[1])
         self.seek(args[0])
 
+class Gzip_pickle(gzip.GzipFile):
+    def __getstate__(self):
+        return self.tell(), self.name
+    def __setstate__(self, args):
+        super().__init__(args[1])
+        self.seek(args[0])
+
+
 def pickle_open(name, mode):
-    buffer = FileIOPickable(name, mode='rb')
+    buffer = FileIOPickable(name)
     if mode == 'rb':
         return buffer
     elif mode == 'rt' or mode == 'r':
         return TextIOPickable(buffer)
 
+
 def bz2_pickle_open(name, mode):
     mode = mode.replace('t', '').replace('b', '')
     return BZ2Pickable(name, mode)
+
+
+def gzip_pickle_open(name, mode):
+    gz_mode = mode.replace("t", "")
+    binary_file = Gzip_pickle(name, gz_mode)
+    if "t" in mode:
+        return TextIOPickable(binary_file)
+    else:
+        return binary_file
 
 
 @contextmanager
@@ -425,7 +438,7 @@ def anyopen(datasource, mode='rt', reset=True):
 
     """
     write_handlers = {'bz2': bz2_open, 'gz': gzip.open, '': open }
-    read_handlers = {'bz2': bz2_pickle_open, 'gz': gzip.open, '': pickle_open }
+    read_handlers = {'bz2': bz2_pickle_open, 'gz': gzip_pickle_open, '': pickle_open }
 
     if mode.startswith('r'):
         if isstream(datasource):
