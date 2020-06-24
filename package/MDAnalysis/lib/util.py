@@ -203,6 +203,8 @@ import numpy as np
 from numpy.testing import assert_equal
 import inspect
 
+from .picklable_file_io import pickle_open, bz2_pickle_open, gzip_pickle_open
+
 from ..exceptions import StreamWarning, DuplicateWarning
 try:
     from ._cutil import unique_int_1d
@@ -226,7 +228,6 @@ try:
 except ImportError:
     class PathLike(object):
         pass
-
 
 
 def filename(name, ext=None, keep=False):
@@ -313,25 +314,6 @@ def openany(datasource, mode='rt', reset=True):
         stream.close()
 
 
-# On python 3, we want to use bz2.open to open and uncompress bz2 files. That
-# function allows to specify the type of the uncompressed file (bytes ot text).
-# The function does not exist in python 2, thus we must use bz2.BZFile to
-# which we cannot tell if the uncompressed file contains bytes or text.
-# Therefore, on python 2 we use a proxy function that removes the type of the
-# uncompressed file from the `mode` argument.
-try:
-    bz2.open
-except AttributeError:
-    # We are on python 2 and bz2.open is not available
-    def bz2_open(filename, mode):
-        """Open and uncompress a BZ2 file"""
-        mode = mode.replace('t', '').replace('b', '')
-        return bz2.BZ2File(filename, mode)
-else:
-    # We are on python 3 so we can use bz2.open
-    bz2_open = bz2.open
-
-
 def anyopen(datasource, mode='rt', reset=True):
     """Open datasource (gzipped, bzipped, uncompressed) and return a stream.
 
@@ -369,7 +351,8 @@ def anyopen(datasource, mode='rt', reset=True):
        behavior to return a tuple ``(stream, filename)``.
 
     """
-    handlers = {'bz2': bz2_open, 'gz': gzip.open, '': open}
+    read_handlers = {'bz2': bz2_pickle_open, 'gz': gzip_pickle_open, '': pickle_open}
+    write_handlers = {'bz2': bz2.open, 'gz': gzip.open, '': open}
 
     if mode.startswith('r'):
         if isstream(datasource):
@@ -392,7 +375,7 @@ def anyopen(datasource, mode='rt', reset=True):
             stream = None
             filename = datasource
             for ext in ('bz2', 'gz', ''):  # file == '' should be last
-                openfunc = handlers[ext]
+                openfunc = read_handlers[ext]
                 stream = _get_stream(datasource, openfunc, mode=mode)
                 if stream is not None:
                     break
@@ -413,7 +396,7 @@ def anyopen(datasource, mode='rt', reset=True):
                 ext = ext[1:]
             if not ext in ('bz2', 'gz'):
                 ext = ''  # anything else but bz2 or gz is just a normal file
-            openfunc = handlers[ext]
+            openfunc = write_handlers[ext]
             stream = openfunc(datasource, mode=mode)
             if stream is None:
                 raise IOError(errno.EIO, "Cannot open file or stream in mode={mode!r}.".format(**vars()), repr(filename))
