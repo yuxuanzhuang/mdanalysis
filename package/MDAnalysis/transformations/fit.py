@@ -32,6 +32,7 @@ a given AtomGroup to a reference structure.
 .. autoclass:: fit_rot_trans
 
 """
+import cupy as cp
 import numpy as np
 
 from ..analysis import align
@@ -228,6 +229,11 @@ class fit_rot_trans(object):
                                     axes='sxyz')[:3, :3]
             vector[self.plane] = mobile_com[self.plane]
         ts.positions = ts.positions - mobile_com
-        ts.positions = np.dot(ts.positions, rotation.T)
-        ts.positions = ts.positions + vector
+        positions = cp.array(ts.positions)
+        mobile_com = cp.array(mobile_com)
+        vector = cp.array(vector)
+        rotation_T = cp.array(rotation.T)
+        positions = cp.dot(positions, rotation_T)
+        positions = positions + vector
+        ts.positions = cp.asnumpy(positions)
         return ts
