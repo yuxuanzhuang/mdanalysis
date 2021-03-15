@@ -14,11 +14,40 @@ The rules for this file:
 
 ------------------------------------------------------------------------------
 ??/??/?? tylerjereddy, richardjgowers, IAlibay, hmacdope, orbeckst, cbouy,
-         lilyminium, daveminh, jbarnoud, yuxuanzhuang, VOD555, ianmkenney
+         lilyminium, daveminh, jbarnoud, yuxuanzhuang, VOD555, ianmkenney,
+         calcraven，xiki-tempula, mieczyslaw, manuel.nuno.melo, PicoCentauri,
+         hanatok, rmeli, aditya-kamath, tirkarthi
 
   * 2.0.0
 
 Fixes
+  * ValueError raised when empty atomgroup is given to DensityAnalysis
+    without a user defined grid. UserWarning displayed when user defined 
+    grid is provided. (Issue #3055)
+  * Fixed import of several `__all__` lists (PR #3013)
+  * atommethods (_get_prev/next_residues_by_resid) returns empty residue group 
+    when given empty residue group (Issue #3089)
+  * MOL2 files without bonds can now be read and written (Issue #3057)
+  * Write `CONECT` record only once in multi-model PDB files (Issue #3018)
+  * Add '.nc' as a recognised extension for the NCDFWriter (Issue #3030)
+  * PDB parser now assigns empty records for partially missing/invalid elements
+    instead of not assigning the elements attribute at all (Issue #2422)
+  * PDB writer now uses elements attribute instead of guessing elements from
+    atom name (Issue #2423)
+  * Cleanup and parametrization of test_atomgroup.py (Issue #2995)
+  * The methods provided by topology attributes now appear in the
+    documentation (Issue #1845)
+  * AtomGroup.center now works correctly for compounds + unwrapping
+    (Issue #2984)
+  * Avoid using deprecated array indexing in topology attributes
+    (Issue #2990, PR #2991)
+  * ParmedParser no longer guesses elements if they are not recognised, instead
+    empty strings are assigned (Issue #2933)
+  * Instead of using ATOM for both ATOM and HETATM, HETATM record type
+    keyword is properly written out by PDB writer (Issue #1753, PR #2880).
+  * Change referenced PDB standard version to 3.3 (Issue #2906).
+  * Fixed reading in masses and charges from a hoomdxml file
+    (Issue #2888, PR #2889)
   * Bond attribute is no longer set if PDB file contains no CONECT records
     (Issue #2832)
   * ResidueAttrs now have Atom as a target class by default; ICodes and
@@ -39,10 +68,41 @@ Fixes
   * In hydrogenbonds.hbond_analysis.HydrogenbondAnalysis an AttributeError
     was thrown when finding D-H pairs via the topology if `hydrogens` was an
     empty AtomGroup (Issue #2848)
+  * Fixed performance regression on select_atoms for string selections (#2751)
   * Fixed the DMSParser, allowing the creation of multiple segids sharing
-    residues with identical resids (Issue #1387, PR #2872)    
+    residues with identical resids (Issue #1387, PR #2872)
+  * H5MD files are now picklable with H5PYPicklable (Issue #2890, PR #2894)
+  * Fixed Janin analysis residue filtering (include CYSH) (Issue #2898)
+  * libmdaxdr and libdcd classes in their last frame can now be pickled
+    (Issue #2878, PR #2911)
+  * AtomGroup now are pickled/unpickled without looking for its anchored
+    Universe (PR #2893)
+  * ensure that unistd.h is included on macOS when compiling ENCORE's spe.c
+    (Issue #2934)
+  * Fix tests for analysis.bat that could fail when run in parallel and that
+    would create a test artifact (Issue #2979, PR #2981)
+  * Fix syntax warning over comparison of literals using is (Issue #3066)
 
 Enhancements
+  * Adds preliminary support for the ppc64le platform with minimal
+    dependencies (Issue #3127, PR #3149)
+  * Caches can now undergo central validation at the Universe level, opening
+    the door to more useful caching. Already applied to fragment caching
+    (Issue #2376, PR #3135)
+  * Code for operations on compounds refactored, centralized and optimized for
+    performance (Issue #3000, PR #3005)
+  * Added automatic selection class generation for TopologyAttrs,
+    FloatRangeSelection, and BoolSelection (Issues #2925, #2875; PR #2927)
+  * Added 'to' operator, negatives, scientific notation, and arbitrary
+    whitespace for ranges (Issue #3054, PR #2927)
+  * Added `atol` and `rtol` keywords for float comparison (PR #2927)
+  * Improved performance of the ParmEd converter (Issue #3028, PR #3029)
+  * Improved analysis class docstrings, and added missing classes to the 
+    `__all__` list (PR #2998)
+  * The PDB writer gives more control over how to write the atom ids
+    (Issue #1072, PR #2886)
+  * Preliminary support for the Linux ARM64 platform with minimal
+    dependencies (PR #2956)
   * Refactored analysis.helanal into analysis.helix_analysis
     (Issue #2452, PR #2622)
   * Improved MSD code to accept `AtomGroup` and reject `UpdatingAtomGroup`
@@ -64,8 +124,26 @@ Enhancements
   * Dead code removed from the TPR parser and increased test coverage (PR #2840)
   * TPR parser exposes the elements topology attribute (PR #2858, see Issue #2553)
   * Added `H5MDReader` to coordinate readers (Issue #762, PR #2787)
-
+  * Added new kwargs `select_remove` and `select_protein` to
+    analysis.dihedrals.Janin analysis to give user more fine grained control
+    over selections (PR #2899)
+  * Improved performance of select_atoms on strings (e.g. name, type, resname) and
+    'protein' selection (#2751 PR #2755)
+  * Added an RDKit converter that works for any input with all hydrogens
+    explicit in the topology (Issue #2468, PR #2775)
+  
 Changes
+  * TPRParser now loads TPR files with `tpr_resid_from_one=True` by default, 
+    which starts TPR resid indexing from 1 (instead of 0 as in 1.x) (Issue #2364, PR #3152)
+  * Introduces encore specific C compiler arguments to allow for lowering of
+    optimisations on non-x86 platforms (Issue #1389, PR #3149)
+  * Continuous integration uses mamba rather than conda to install the
+    dependencies (PR #2983)
+  * removes deprecated `as_Universe` function from MDAnalysis.core.universe,
+    as a result :class:`MDAnalysis.analysis.leaflet.LeafletFinder` now only
+    accepts Universes for its `universe` argument (Issue #2920)
+  * deprecated Python escape sequence usage has been fixed in our test suite,
+    and the test suite will now raise an error for this usage of `\` (PR #2885)
   * deprecated NumPy type aliases have been replaced with their actual types
     (see upstream NumPy PR 14882), and our pytest configuration will raise an
     error for any violation when testing with development NumPy builds
@@ -87,6 +165,13 @@ Changes
   * Changes the minimal NumPy version to 1.16.0 (Issue #2827, PR #2831)
   * Sets the minimal RDKit version for CI to 2020.03.1 (Issue #2827, PR #2831)
   * Removes deprecated waterdynamics.HydrogenBondLifetimes (PR #2842)
+  * Make NeighborSearch return empty atomgroup, residue, segments instead of list (Issue #2892, PR #2907)
+  * Updated Universe creation function signatures to named arguments (Issue #2921)  
+  * The transformation was changed from a function/closure to a class with
+    `__call__` (Issue #2860, PR #2859)
+  * deprecated ``analysis.helanal`` module has been removed in favour of
+    ``analysis.helix_analysis`` (PR #2929)
+  * Move water bridge analysis from hbonds to hydrogenbonds (Issue #2739 PR #2913)
 
 Deprecations
 
