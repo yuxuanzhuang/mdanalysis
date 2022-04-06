@@ -601,6 +601,7 @@ if __name__ == '__main__':
           'tqdm>=4.43.0',
           'threadpoolctl',
           'packaging',
+          'fasteners',
     ]
 
     if not os.name == 'nt':
