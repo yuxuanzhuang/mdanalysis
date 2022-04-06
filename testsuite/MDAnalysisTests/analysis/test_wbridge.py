@@ -273,11 +273,19 @@ class TestWaterBridgeAnalysis(object):
         u = MDAnalysis.Universe(StringIO(grofile), format='gro')
         wb = WaterBridgeAnalysis(u, 'protein and (resid 1)', 'protein and (resid 4)',
                                  order=4)
+<<<<<<< HEAD
         # Build an dummy WaterBridgeAnalysis object for testing
         wb.results.network = []
         wb.results.network.append({(1, 0, 12, None, 2.0, 180.0): None})
         wb.results.network.append({(0, None, 12, 13, 2.0, 180.0): None})
         wb.results.network.append({(1, 0, 3, None, 2.0, 180.0):
+=======
+        # Build a dummy WaterBridgeAnalysis object for testing
+        wb._network = []
+        wb._network.append({(1, 0, 12, None, 2.0, 180.0): None})
+        wb._network.append({(0, None, 12, 13, 2.0, 180.0): None})
+        wb._network.append({(1, 0, 3, None, 2.0, 180.0):
+>>>>>>> mda_origin/feature-(un)wrap-enhancement
                             {(4, 2, 12, None, 2.0, 180.0): None}})
         wb.results.network.append({(0, None, 3, 2, 2.0, 180.0):
                             {(4, 2, 5, None, 2.0, 180.0):
@@ -286,7 +294,7 @@ class TestWaterBridgeAnalysis(object):
         return wb
 
     def test_nodata(self, universe_DA):
-        '''Test if the funtions can run when there is no data.
+        '''Test if the functions can run when there is no data.
         This is achieved by not runing the run() first.'''
         wb = WaterBridgeAnalysis(universe_DA, 'protein and (resid 1)',
                                  'protein and (resid 4)', order=0)

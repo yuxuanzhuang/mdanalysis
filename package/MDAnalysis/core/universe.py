@@ -1125,8 +1125,7 @@ class Universe(object):
                                  guessed=guessed, order=order)
         # Invalidate bond-related caches
         self._cache.pop('fragments', None)
-        self._cache['_valid'].pop('fragments', None)
-        self._cache['_valid'].pop('fragindices', None)
+        self._cache['_valid'].pop('bonds', None)
 
     def add_angles(self, values, types=None, guessed=False):
         """Add new Angles to this Universe.
@@ -1265,8 +1264,7 @@ class Universe(object):
         self._delete_topology_objects('bonds', values)
         # Invalidate bond-related caches
         self._cache.pop('fragments', None)
-        self._cache['_valid'].pop('fragments', None)
-        self._cache['_valid'].pop('fragindices', None)
+        self._cache['_valid'].pop('bonds', None)
 
     def delete_angles(self, values):
         """Delete Angles from this Universe.

@@ -169,15 +169,15 @@ def make_whole(atomgroup, reference_atom=None, inplace=True):
     on either side of the unit cell. This is problematic for operations
     such as calculating the center of mass of the molecule. ::
 
-       +-----------+     +-----------+
-       |           |     |           |
-       | 6       3 |     |         3 | 6
-       | !       ! |     |         ! | !
-       |-5-8   1-2-| ->  |       1-2-|-5-8
-       | !       ! |     |         ! | !
-       | 7       4 |     |         4 | 7
-       |           |     |           |
-       +-----------+     +-----------+
+       +-----------+        +-----------+
+       |           |        |           |
+       | 6       3 |        |         3 | 6
+       | !       ! |        |         ! | !
+       |-5-8   1-2-|  ==>   |       1-2-|-5-8
+       | !       ! |        |         ! | !
+       | 7       4 |        |         4 | 7
+       |           |        |           |
+       +-----------+        +-----------+
 
 
     Parameters
@@ -242,7 +242,7 @@ def make_whole(atomgroup, reference_atom=None, inplace=True):
         Inplace-modification of atom positions is now optional, and positions
         are returned as a numpy array.
     """
-    cdef intset refpoints, todo, done
+    cdef intset todo, done
     cdef np.intp_t i, j, nloops, ref, atom, other, natoms
     cdef cmap[int, int] ix_to_rel
     cdef intmap bonding
@@ -326,43 +326,38 @@ def make_whole(atomgroup, reference_atom=None, inplace=True):
 
     newpos = np.zeros((oldpos.shape[0], 3), dtype=np.float32)
 
-    refpoints = intset()  # Who is safe to use as reference point?
+    todo = intset()
     done = intset()  # Who have I already searched around?
     # initially we have one starting atom whose position is in correct image
-    refpoints.insert(ref)
+    todo.insert(ref)
     for i in range(3):
         newpos[ref, i] = oldpos[ref, i]
 
-    nloops = 0
-    while <np.intp_t> refpoints.size() < natoms and nloops < natoms:
-        # count iterations to prevent infinite loop here
-        nloops += 1
+    while not todo.empty():
+        atom = deref(todo.begin())
+        todo.erase(todo.begin())
 
-        # We want to iterate over atoms that are good to use as reference
-        # points, but haven't been searched yet.
-        todo = difference(refpoints, done)
-        for atom in todo:
-            for other in bonding[atom]:
-                # If other is already a refpoint, leave alone
-                if refpoints.count(other):
-                    continue
-                # Draw vector from atom to other
-                for i in range(3):
-                    vec[i] = oldpos[other, i] - newpos[atom, i]
-                # Apply periodic boundary conditions to this vector
-                if ortho:
-                    minimum_image(&vec[0], &box[0], &inverse_box[0])
-                else:
-                    minimum_image_triclinic(&vec[0], &tri_box[0, 0])
-                # Then define position of other based on this vector
-                for i in range(3):
-                    newpos[other, i] = newpos[atom, i] + vec[i]
+        for other in bonding[atom]:
+            # If other is already a refpoint, leave alone
+            if done.count(other) or todo.count(other):
+                continue
+            # Draw vector from atom to other
+            for i in range(3):
+                vec[i] = oldpos[other, i] - newpos[atom, i]
+            # Apply periodic boundary conditions to this vector
+            if ortho:
+                minimum_image(&vec[0], &box[0], &inverse_box[0])
+            else:
+                minimum_image_triclinic(&vec[0], &tri_box[0, 0])
+            # Then define position of other based on this vector
+            for i in range(3):
+                newpos[other, i] = newpos[atom, i] + vec[i]
 
-                # This other atom can now be used as a reference point
-                refpoints.insert(other)
-            done.insert(atom)
+            # This other atom can now be used as a reference point
+            todo.insert(other)
+        done.insert(atom)
 
-    if <np.intp_t> refpoints.size() < natoms:
+    if <np.intp_t> done.size() != natoms:
         raise ValueError("AtomGroup was not contiguous from bonds, process failed")
     if inplace:
         atomgroup.positions = newpos
