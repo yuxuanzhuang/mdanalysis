@@ -16,7 +16,7 @@ The rules for this file:
 ??/??/?? IAlibay, BFedder, inomag, Agorfa, aya9aladdin, shudipto-amin, cbouy,
          HenokB, umak1106, tamandeeps, Mrqeoqqt, megosato, AnirG, rishu235,
          mtiberti, manishsaini6421, Sukeerti1, robotjellyzone, markvrma, alescoulie,
-         mjtadema, PicoCentauri, Atharva7K, aditi2906, orbeckst,  yuxuanzhuang,
+         mjtadema, PicoCentauri, Atharva7K, aditi2906, orbeckst, yuxuanzhuang,
          rsexton2
 
  * 2.2.0
@@ -26,6 +26,8 @@ Fixes
     reader, resetting any modified trajectory attributes to those
     read from file. Fixes behavior that was previously undefined (Issue #3423)
   * Fixed Reader.copy() did not preserve convert_units=False (see PR #3642)
+  * Fix reading error when PDB CONECT records are corrupt. (Issue #988)
+  * Fix writing unusable PDB CONECT records with index>100000. (Issue #988)
   * Fix the competition when generating offsets from multiple processes by
     using a interprocess file lock. (Issue #1988, PR #3375)
   * Fix the error when trying to load a corrupted offset file (Issue #3230
