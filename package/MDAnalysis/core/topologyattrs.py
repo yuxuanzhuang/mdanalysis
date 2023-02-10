@@ -55,6 +55,7 @@ from types import MethodType
 import Bio.Seq
 import Bio.SeqRecord
 import numpy as np
+from multiprocessing.shared_memory import SharedMemory
 
 from ..lib.util import (cached, convert_aa_code, iterable, warn_if_not_unique,
                         unique_int_1d, check_atomgroup_not_empty)
@@ -703,7 +704,10 @@ class _StringInternerMixin:
         name_lookup = []  # maps idx to str
         # eg namedict['O'] = 5 & name_lookup[5] = 'O'
 
-        self.nmidx = np.zeros_like(vals, dtype=int)  # the lookup for each atom
+        self._shm_nmidx = SharedMemory(create=True, size=len(vals) * 8)
+        self.nmidx = np.ndarray(len(vals), dtype=np.intp, buffer=self._shm_nmidx.buf)
+
+        self.nmidx[:] = np.zeros_like(vals, dtype=np.intp)  # the lookup for each atom
         # eg Atom 5 is 'C', so nmidx[5] = 7, where name_lookup[7] = 'C'
 
         for i, val in enumerate(vals):
@@ -769,6 +773,20 @@ class _StringInternerMixin:
             self.name_lookup = np.concatenate([self.name_lookup, newnames])
         self.values = self.name_lookup[self.nmidx]
 
+    def __getstate__(self):
+        """Return state values to be pickled.
+        """
+        return (self._guessed, self.namedict, self._shm_nmidx.name)
+
+    def __setstate__(self, state):
+        """Rebuild from pickled state
+        """
+        self._guessed = state[0]
+        self.namedict = state[1]
+        self._shm_nmidx = SharedMemory(name=state[2])
+        self.nmidx = np.frombuffer(self._shm_nmidx.buf, dtype=np.intp)
+        self.name_lookup = np.array(list(self.namedict.keys()), dtype=object)
+        self.values = self.name_lookup[self.nmidx]
 
 # woe betide anyone who switches this inheritance order
 # Mixin needs to be first (L to R) to get correct __init__ and set_atoms
