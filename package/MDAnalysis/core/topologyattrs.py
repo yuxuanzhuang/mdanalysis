@@ -776,7 +776,7 @@ class _StringInternerMixin:
     def __getstate__(self):
         """Return state values to be pickled.
         """
-        return (self._guessed, self.namedict, self._shm_nmidx.name)
+        return (self._guessed, self.namedict, self._shm_nmidx.name, self.values.shape)
 
     def __setstate__(self, state):
         """Rebuild from pickled state
@@ -784,7 +784,8 @@ class _StringInternerMixin:
         self._guessed = state[0]
         self.namedict = state[1]
         self._shm_nmidx = SharedMemory(name=state[2])
-        self.nmidx = np.frombuffer(self._shm_nmidx.buf, dtype=np.intp)
+
+        self.nmidx = np.ndarray(state[3], dtype=np.intp, buffer=self._shm_nmidx.buf)
         self.name_lookup = np.array(list(self.namedict.keys()), dtype=object)
         self.values = self.name_lookup[self.nmidx]
 

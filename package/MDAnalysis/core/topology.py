@@ -196,7 +196,8 @@ class TransTable(object):
             _AR = np.asarray(atom_resindex, dtype=np.intp).copy()
             if not len(_AR) == n_atoms:
                 raise ValueError("atom_resindex must be len n_atoms")
-        self._AR = np.frombuffer(self._shm_ar.buf, dtype=np.intp)
+
+        self._AR = np.ndarray(_AR.shape, dtype=np.intp, buffer=self._shm_ar.buf)
         self._AR[:] = _AR
         self._RA = None
 
@@ -207,7 +208,7 @@ class TransTable(object):
             _RS = np.asarray(residue_segindex, dtype=np.intp).copy()
             if not len(_RS) == n_residues:
                 raise ValueError("residue_segindex must be len n_residues")
-        self._RS = np.frombuffer(self._shm_rs.buf, dtype=np.intp)
+        self._RS = np.ndarray(_RS.shape, dtype=np.intp, buffer=self._shm_rs.buf)
         self._RS[:] = _RS
         self._SR = None
 
@@ -455,7 +456,7 @@ class TransTable(object):
         self._AR = np.ndarray(self.n_atoms, dtype=np.intp,
                               buffer=self._shm_ar.buf)
         self._RS = np.ndarray(self.n_residues, dtype=np.intp,
-                              buffer=self._shm_ar.buf)
+                              buffer=self._shm_rs.buf)
         self._RA = None
         self._SR = None
 
