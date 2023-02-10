@@ -450,7 +450,6 @@ class TransTable(object):
         self.n_atoms = state['n_atoms']
         self.n_residues = state['n_residues']
         self.n_segments = state['n_segments']
-        print(state['shm_ar'], state['shm_rs'])
         self._shm_ar = SharedMemory(state['shm_ar'])
         self._shm_rs = SharedMemory(state['shm_rs'])
         self._AR = np.ndarray(self.n_atoms, dtype=np.intp,
@@ -521,18 +520,10 @@ class Topology(object):
             new.add_TopologyAttr(attr.copy())
         return new
 
-    
-#    def __getstate__(self):
-#        return self.__dict__
-    
-#    def __setstate__(self, state):
-#        print(state)
-#        self.__dict__.update(state)
-    #    self.tt = tt
-    #     self.attrs = []
-    #     self.add_TopologyAttr(Atomindices())
-    #     self.add_TopologyAttr(Resindices())
-    #     self.add_TopologyAttr(Segindices())
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        for attr in self.attrs:
+            attr.top = self
 
     @property
     def n_atoms(self):

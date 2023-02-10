@@ -788,6 +788,7 @@ class _StringInternerMixin:
         self.name_lookup = np.array(list(self.namedict.keys()), dtype=object)
         self.values = self.name_lookup[self.nmidx]
 
+
 # woe betide anyone who switches this inheritance order
 # Mixin needs to be first (L to R) to get correct __init__ and set_atoms
 class AtomStringAttr(_StringInternerMixin, AtomAttr):
