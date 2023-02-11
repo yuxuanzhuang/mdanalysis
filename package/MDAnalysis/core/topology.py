@@ -186,8 +186,12 @@ class TransTable(object):
         self.n_residues = n_residues
         self.n_segments = n_segments
 
-        self._shm_ar = SharedMemory(create=True, size=n_atoms * 8)
-        self._shm_rs = SharedMemory(create=True, size=n_residues * 8)
+        # set memory for the arrays to minimal 8 bytes
+        ar_size = n_atoms * 8 if n_atoms > 0 else 8
+        rs_size = n_residues * 8 if n_residues > 0 else 8
+        
+        self._shm_ar = SharedMemory(create=True, size=ar_size)
+        self._shm_rs = SharedMemory(create=True, size=rs_size)
 
         # built atom-to-residue mapping, and vice-versa
         if atom_resindex is None:

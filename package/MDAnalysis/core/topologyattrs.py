@@ -778,7 +778,7 @@ class _StringInternerMixin:
     def __getstate__(self):
         """Return state values to be pickled.
         """
-        return (self._guessed, self.namedict, self._shm_nmidx.name, self.values.shape)
+        return (self._guessed, self.namedict, self._shm_nmidx.name, self.nmidx.shape)
 
     def __setstate__(self, state):
         """Rebuild from pickled state
