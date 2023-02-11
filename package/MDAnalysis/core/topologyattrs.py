@@ -51,6 +51,8 @@ from inspect import signature as inspect_signature
 import warnings
 import textwrap
 from types import MethodType
+from functools import cached_property
+
 
 import Bio.Seq
 import Bio.SeqRecord
@@ -787,8 +789,11 @@ class _StringInternerMixin:
 
         self.nmidx = np.ndarray(state[3], dtype=np.intp, buffer=self._shm_nmidx.buf)
         self.name_lookup = np.array(list(self.namedict.keys()), dtype=object)
-        self.values = self.name_lookup[self.nmidx]
+#        self.values = self.name_lookup[self.nmidx]
 
+    @cached_property
+    def values(self):
+        return self.name_lookup[self.nmidx]
 
 # woe betide anyone who switches this inheritance order
 # Mixin needs to be first (L to R) to get correct __init__ and set_atoms
