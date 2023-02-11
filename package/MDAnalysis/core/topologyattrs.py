@@ -422,7 +422,11 @@ class TopologyAttr(object, metaclass=_TopologyAttrMeta):
         if self.dtype is None:
             self.values = values
         else:
-            self.values = np.asarray(values, dtype=self.dtype)
+            self._shm_array = SharedMemory(create=True,
+                                           size=len(values) * 8)
+            self.values = np.ndarray(values.shape, dtype=self.dtype,
+                                     buffer=self._shm_array.buf)
+            self.values[:] = values
         self._guessed = guessed
 
     @staticmethod
@@ -519,6 +523,28 @@ class TopologyAttr(object, metaclass=_TopologyAttrMeta):
         """Set segmentattributes for a given SegmentGroup"""
         raise NotImplementedError
 
+    def __getstate__(self):
+        """Get state for pickling"""
+        if hasattr(self, '_shm_array'):
+            return (self._guessed,
+                    self._shm_array.name,
+                    self.values.shape)
+        else:
+            return (self._guessed,
+                    None)
+
+    def __setstate__(self, state):
+        """Set state for unpickling"""
+        self._guessed = state[0]
+
+        if state[1] is None:
+            self._shm_array = None
+            self.values = None
+        else:
+            self._shm_array = SharedMemory(name=state[1])
+            self.values = np.ndarray(state[2],
+                                     dtype=self.dtype,
+                                     buffer=self._shm_array.buf)
 
 # core attributes
 
