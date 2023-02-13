@@ -51,10 +51,13 @@ from inspect import signature as inspect_signature
 import warnings
 import textwrap
 from types import MethodType
+from functools import cached_property
+
 
 import Bio.Seq
 import Bio.SeqRecord
 import numpy as np
+from multiprocessing.shared_memory import SharedMemory
 
 from ..lib.util import (cached, convert_aa_code, iterable, warn_if_not_unique,
                         unique_int_1d, check_atomgroup_not_empty)
@@ -419,7 +422,11 @@ class TopologyAttr(object, metaclass=_TopologyAttrMeta):
         if self.dtype is None:
             self.values = values
         else:
-            self.values = np.asarray(values, dtype=self.dtype)
+            self._shm_array = SharedMemory(create=True,
+                                           size=len(values) * 8)
+            self.values = np.ndarray(values.shape, dtype=self.dtype,
+                                     buffer=self._shm_array.buf)
+            self.values[:] = values
         self._guessed = guessed
 
     @staticmethod
@@ -516,6 +523,28 @@ class TopologyAttr(object, metaclass=_TopologyAttrMeta):
         """Set segmentattributes for a given SegmentGroup"""
         raise NotImplementedError
 
+    def __getstate__(self):
+        """Get state for pickling"""
+        if hasattr(self, '_shm_array'):
+            return (self._guessed,
+                    self._shm_array.name,
+                    self.values.shape)
+        else:
+            return (self._guessed,
+                    None)
+
+    def __setstate__(self, state):
+        """Set state for unpickling"""
+        self._guessed = state[0]
+
+        if state[1] is None:
+            self._shm_array = None
+            self.values = None
+        else:
+            self._shm_array = SharedMemory(name=state[1])
+            self.values = np.ndarray(state[2],
+                                     dtype=self.dtype,
+                                     buffer=self._shm_array.buf)
 
 # core attributes
 
@@ -696,6 +725,7 @@ class _StringInternerMixin:
        Mashed together the different implementations to keep it DRY.
     """
 
+    dtype = str
     def __init__(self, vals, guessed=False):
         self._guessed = guessed
 
@@ -703,7 +733,13 @@ class _StringInternerMixin:
         name_lookup = []  # maps idx to str
         # eg namedict['O'] = 5 & name_lookup[5] = 'O'
 
-        self.nmidx = np.zeros_like(vals, dtype=int)  # the lookup for each atom
+
+        # set size of shared memory to be at least 8 bytes
+        shm_size = len(vals) * 8 if len(vals) > 1 else 8
+        self._shm_nmidx = SharedMemory(create=True, size=shm_size)
+        self.nmidx = np.ndarray(len(vals), dtype=np.intp, buffer=self._shm_nmidx.buf)
+
+        self.nmidx[:] = np.zeros_like(vals, dtype=np.intp)  # the lookup for each atom
         # eg Atom 5 is 'C', so nmidx[5] = 7, where name_lookup[7] = 'C'
 
         for i, val in enumerate(vals):
@@ -716,8 +752,11 @@ class _StringInternerMixin:
 
                 self.nmidx[i] = nextidx
 
-        self.name_lookup = np.array(name_lookup, dtype=object)
-        self.values = self.name_lookup[self.nmidx]
+        self.name_lookup = np.array(name_lookup, dtype=str)
+
+        self._shm_values = SharedMemory(create=True, size=shm_size)
+        self.values = np.ndarray(self.nmidx.shape, dtype=self.dtype, buffer=self._shm_values.buf)
+        self.values[:] = self.name_lookup[self.nmidx]
 
     def _add_new(self, newval):
         """Append new value to the TopologyAttr
@@ -769,6 +808,32 @@ class _StringInternerMixin:
             self.name_lookup = np.concatenate([self.name_lookup, newnames])
         self.values = self.name_lookup[self.nmidx]
 
+    def __getstate__(self):
+        """Return state values to be pickled.
+        """
+        return (self._guessed,
+                self.dtype,
+                self.namedict,
+                self._shm_nmidx.name,
+                self._shm_values.name,
+                self.nmidx.shape,
+                )
+
+    def __setstate__(self, state):
+        """Rebuild from pickled state
+        """
+        self._guessed = state[0]
+        self.dtype = state[1]
+        self.namedict = state[2]
+
+        self._shm_nmidx = SharedMemory(name=state[3])
+        self._shm_values = SharedMemory(name=state[4])
+
+        self.nmidx = np.ndarray(state[5], dtype=np.intp, buffer=self._shm_nmidx.buf)
+        self.name_lookup = np.array(list(self.namedict.keys()), dtype=str)
+#        self.values = self.name_lookup[self.nmidx]
+        self.values = np.ndarray(state[5], dtype=self.dtype, buffer=self._shm_values.buf)
+
 
 # woe betide anyone who switches this inheritance order
 # Mixin needs to be first (L to R) to get correct __init__ and set_atoms
@@ -780,7 +845,7 @@ class AtomStringAttr(_StringInternerMixin, AtomAttr):
 
     @staticmethod
     def _gen_initial_values(na, nr, ns):
-        return np.full(na, '', dtype=object)
+        return np.full(na, '', dtype=str)
 
 
 # TODO: update docs to property doc
@@ -790,7 +855,7 @@ class Atomnames(AtomStringAttr):
     attrname = 'names'
     singular = 'name'
     per_object = 'atom'
-    dtype = object
+    dtype = str
     transplants = defaultdict(list)
 
     def phi_selection(residue, c_name='C', n_name='N', ca_name='CA'):
@@ -1285,7 +1350,7 @@ class Atomtypes(AtomStringAttr):
     attrname = 'types'
     singular = 'type'
     per_object = 'atom'
-    dtype = object
+    dtype = str
 
 
 # TODO: update docs to property doc
@@ -1293,7 +1358,7 @@ class Elements(AtomStringAttr):
     """Element for each atom"""
     attrname = 'elements'
     singular = 'element'
-    dtype = object
+    dtype = str
 
     @staticmethod
     def _gen_initial_values(na, nr, ns):
@@ -1324,7 +1389,7 @@ class RecordTypes(AtomStringAttr):
     attrname = 'record_types'
     singular = 'record_type'
     per_object = 'atom'
-    dtype = object
+    dtype = str
 
     @staticmethod
     def _gen_initial_values(na, nr, ns):
@@ -1341,7 +1406,7 @@ class ChainIDs(AtomStringAttr):
     attrname = 'chainIDs'
     singular = 'chainID'
     per_object = 'atom'
-    dtype = object
+    dtype = str
 
 
 class Tempfactors(AtomAttr):
@@ -2488,11 +2553,11 @@ class AltLocs(AtomStringAttr):
     attrname = 'altLocs'
     singular = 'altLoc'
     per_object = 'atom'
-    dtype = object
+    dtype = str
 
     @staticmethod
     def _gen_initial_values(na, nr, ns):
-        return np.array(['' for _ in range(na)], dtype=object)
+        return np.array(['' for _ in range(na)], dtype=str)
 
 
 class GBScreens(AtomAttr):
@@ -2641,7 +2706,7 @@ class ResidueStringAttr(_StringInternerMixin, ResidueAttr):
 
     @staticmethod
     def _gen_initial_values(na, nr, ns):
-        return np.full(nr, '', dtype=object)
+        return np.full(nr, '', dtype=str)
 
 
 # TODO: update docs to property doc
@@ -2661,11 +2726,11 @@ class Resnames(ResidueStringAttr):
     attrname = 'resnames'
     singular = 'resname'
     transplants = defaultdict(list)
-    dtype = object
+    dtype = str
 
     @staticmethod
     def _gen_initial_values(na, nr, ns):
-        return np.array(['' for _ in range(nr)], dtype=object)
+        return np.array(['' for _ in range(nr)], dtype=str)
 
     def sequence(self, **kwargs):
         """Returns the amino acid sequence.
@@ -2780,7 +2845,7 @@ class ICodes(ResidueStringAttr):
     """Insertion code for Atoms"""
     attrname = 'icodes'
     singular = 'icode'
-    dtype = object
+    dtype = str
 
 
 class Moltypes(ResidueStringAttr):
@@ -2790,7 +2855,7 @@ class Moltypes(ResidueStringAttr):
     """
     attrname = 'moltypes'
     singular = 'moltype'
-    dtype = object
+    dtype = str
 
 
 class Molnums(ResidueAttr):
@@ -2846,7 +2911,7 @@ class SegmentStringAttr(_StringInternerMixin, SegmentAttr):
 
     @staticmethod
     def _gen_initial_values(na, nr, ns):
-        return np.full(ns, '', dtype=object)
+        return np.full(ns, '', dtype=str)
 
 
 # TODO: update docs to property doc
@@ -2854,11 +2919,11 @@ class Segids(SegmentStringAttr):
     attrname = 'segids'
     singular = 'segid'
     transplants = defaultdict(list)
-    dtype = object
+    dtype = str
 
     @staticmethod
     def _gen_initial_values(na, nr, ns):
-        return np.array(['' for _ in range(ns)], dtype=object)
+        return np.array(['' for _ in range(ns)], dtype=str)
 
 
 def _check_connection_values(func):
@@ -2980,7 +3045,7 @@ class _Connection(AtomAttr, metaclass=_ConnectionTopologyAttrMeta):
         except TypeError:
             # maybe we got passed an Atom
             unique_bonds = self._bondDict[ag.ix]
-        unique_bonds = np.array(sorted(unique_bonds), dtype=object)
+        unique_bonds = np.array(sorted(unique_bonds), dtype=str)
         bond_idx, types, guessed, order = np.hsplit(unique_bonds, 4)
         bond_idx = np.array(bond_idx.ravel().tolist(), dtype=np.int32)
         types = types.ravel()
@@ -3034,7 +3099,7 @@ class _Connection(AtomAttr, metaclass=_ConnectionTopologyAttrMeta):
             del self.values[i]
 
         for attr in ('types', '_guessed', 'order'):
-            arr = np.array(getattr(self, attr), dtype='object')
+            arr = np.array(getattr(self, attr), dtype=str)
             new = np.delete(arr, idx)
             setattr(self, attr, list(new))
         # kill the old cache of bond Dict

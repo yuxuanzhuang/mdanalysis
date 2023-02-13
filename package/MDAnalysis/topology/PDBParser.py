@@ -60,6 +60,7 @@ Classes
 """
 import numpy as np
 import warnings
+from multiprocessing.shared_memory import SharedMemory
 
 from .guessers import guess_masses, guess_types
 from .tables import SYMB2Z
@@ -308,6 +309,7 @@ class PDBParser(TopologyReaderBase):
         n_atoms = len(serials)
 
         attrs = []
+        attrs_shm = []
         # Make Atom TopologyAttrs
         for vals, Attr, dtype in (
                 (names, Atomnames, object),
