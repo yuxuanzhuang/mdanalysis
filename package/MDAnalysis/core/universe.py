@@ -71,7 +71,6 @@ import sys
 # MDAnalysis itself. Python 3.7 fixes the problem.
 import os
 import uuid
-from multiprocessing.shared_memory import SharedMemory
 
 from .. import _TOPOLOGY_ATTRS, _PARSERS
 from ..exceptions import NoDataError
@@ -702,13 +701,10 @@ class Universe(object):
             n_atoms=len(self.atoms))
 
     @classmethod
-    def _unpickle_U(cls, shm_topology, traj):
+    def _unpickle_U(cls, top, traj):
         """Special method used by __reduce__ to deserialise a Universe"""
         #  top is a Topology obj at this point, but Universe can handle that.
-        shm_topology = SharedMemory(name=shm_topology)
-        _shm_topology_arr = np.ndarray(1, dtype=object,
-                                      buffer=shm_topology.buf)
-        u = cls(_shm_topology_arr[0])
+        u = cls(top)
         u.trajectory = traj
 
         return u
@@ -717,20 +713,8 @@ class Universe(object):
         #  __setstate__/__getstate__ will raise an error when Universe has a
         #  transformation (that has AtomGroup inside). Use __reduce__ instead.
         #  Universe's two "legs" of top and traj both serialise themselves.
-
-        if getattr(self, '_shm_topology', None) is not None:
-            #  We're already in a child process, so we don't need to do
-            #  anything special
-            return (self._unpickle_U, (self._shm_topology.name,
-                                       self._trajectory))
-        else:
-            self._shm_topology = SharedMemory(create=True,
-                                              size=self._topology.__sizeof__())
-            _shm_topology_arr = np.ndarray(1, dtype=object,
-                                                buffer=self._shm_topology.buf)
-            _shm_topology_arr[0] = self._topology
-            return (self._unpickle_U, (self._shm_topology.name,
-                                    self._trajectory))
+        return (self._unpickle_U, (self._topology,
+                                   self._trajectory))
 
     # Properties
     @property
