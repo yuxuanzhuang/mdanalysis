@@ -788,9 +788,9 @@ cdef class Timestep:
             "_has_forces": self._has_forces,
 
             "_unitcell": self._unitcell,
-            "_pos": self._pos,
-            "_velocities": self._velocities,
-            "_forces": self._forces,
+#            "_pos": self._pos,
+#            "_velocities": self._velocities,
+#            "_forces": self._forces,
 
             "_dtype": self._dtype,
             "data": self.data,
@@ -823,9 +823,12 @@ cdef class Timestep:
         self._has_velocities = state["_has_velocities"]
         self._has_forces = state["_has_forces"]
         self._unitcell = state["_unitcell"]
-        self._pos = state["_pos"]
-        self._velocities = state["_velocities"]
-        self._forces = state["_forces"]
+#        self._pos = state["_pos"]
+#        self._velocities = state["_velocities"]
+#        self._forces = state["_forces"]
+        self._pos = np.empty((self.n_atoms, 3), dtype=self._dtype)
+        self._velocities = np.empty((self.n_atoms, 3), dtype=self._dtype)
+        self._forces = np.empty((self.n_atoms, 3), dtype=self._dtype)
         self._dtype = state["_dtype"]
         self.data = state["data"]
         self.aux = state["aux"]
