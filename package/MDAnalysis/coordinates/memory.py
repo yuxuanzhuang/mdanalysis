@@ -186,6 +186,7 @@ import errno
 import numpy as np
 import warnings
 import copy
+from multiprocessing.shared_memory import SharedMemory
 
 from . import base
 from .timestep import Timestep
@@ -474,8 +475,14 @@ class MemoryReader(base.ProtoReader):
             coordinates).
         """
         # Only make copy if not already in float32 format
-        self.coordinate_array = coordinate_array.astype('float32', copy=False)
+#        self.coordinate_array = coordinate_array.astype('float32', copy=False)
+        self._coordinate_array = SharedMemoryArray(coordinate_array,
+                                                   dtype='float32')
         self.stored_format = order
+
+    @property
+    def coordinate_array(self):
+        return self._coordinate_array.array
 
     def get_array(self):
         """
@@ -648,3 +655,44 @@ class MemoryReader(base.ProtoReader):
         # to avoid applying the same transformations multiple times on each frame
 
         return ts
+
+
+class SharedMemoryArray(object):
+    """A shared memory array that can be pickled and unpickled.
+
+    Parameters
+    ----------
+    shared_memory : SharedMemory
+        The shared memory object to wrap.
+    shape : tuple
+        The shape of the array.
+    dtype : numpy.dtype
+        The dtype of the array.
+    """
+
+    def __init__(self, array, dtype=None):
+        self.shared_memory = SharedMemory(create=True, size=array.nbytes)
+        self.shape = array.shape
+        if dtype is None:
+            self.dtype = array.dtype
+        else:
+            self.dtype = dtype
+        self.array[:] = array
+
+    def __getstate__(self):
+        return self.dtype, self.shape, self.shared_memory.name
+
+    def __setstate__(self, state):
+        self.dtype, self.shape, name = state
+        self.shared_memory = SharedMemory(name=name)
+
+    @property
+    def array(self):
+        return np.ndarray(self.shape, dtype=self.dtype, buffer=self.shared_memory.buf)
+
+    def __del__(self):
+        self.shared_memory.close()
+
+    def copy(self):
+        # create a new SharedMemoryArray with a copy of the data
+        return SharedMemoryArray(self.array.copy())
