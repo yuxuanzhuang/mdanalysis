@@ -187,7 +187,7 @@ import numpy as np
 import warnings
 import copy
 from multiprocessing.shared_memory import SharedMemory
-
+from functools import cached_property
 from . import base
 from .timestep import Timestep
 
@@ -343,9 +343,10 @@ class MemoryReader(base.ProtoReader):
                                  'to match coordinates {}'
                                  ''.format(velocities.shape,
                                            self.coordinate_array.shape))
-            self.velocity_array = velocities.astype(np.float32, copy=False)
+            self._velocity_array = SharedMemoryArray(velocities,
+                                                    dtype='float32')
         else:
-            self.velocity_array = None
+            self._velocity_array = None
 
         if forces is not None:
             try:
@@ -360,9 +361,9 @@ class MemoryReader(base.ProtoReader):
                                  'to match coordinates {}'
                                  ''.format(forces.shape,
                                            self.coordinate_array.shape))
-            self.force_array = forces.astype(np.float32, copy=False)
+            self._force_array = SharedMemoryArray(forces, dtype='float32')
         else:
-            self.force_array = None
+            self._force_array = None
 
         provided_n_atoms = kwargs.pop("n_atoms", None)
         if (provided_n_atoms is not None and
@@ -475,7 +476,6 @@ class MemoryReader(base.ProtoReader):
             coordinates).
         """
         # Only make copy if not already in float32 format
-#        self.coordinate_array = coordinate_array.astype('float32', copy=False)
         self._coordinate_array = SharedMemoryArray(coordinate_array,
                                                    dtype='float32')
         self.stored_format = order
@@ -483,6 +483,20 @@ class MemoryReader(base.ProtoReader):
     @property
     def coordinate_array(self):
         return self._coordinate_array.array
+
+    @property
+    def velocity_array(self):
+        if self._velocity_array is None:
+            return None
+        else:
+            return self._velocity_array.array
+
+    @property
+    def force_array(self):
+        if self._force_array is None:
+            return None
+        else:
+            return self._force_array.array
 
     def get_array(self):
         """
@@ -686,7 +700,7 @@ class SharedMemoryArray(object):
         self.dtype, self.shape, name = state
         self.shared_memory = SharedMemory(name=name)
 
-    @property
+    @cached_property
     def array(self):
         return np.ndarray(self.shape, dtype=self.dtype, buffer=self.shared_memory.buf)
 
