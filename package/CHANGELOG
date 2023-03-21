@@ -12,19 +12,10 @@ The rules for this file:
   * accompany each entry with github issue/PR number (Issue #xyz)
   * release numbers follow "Semantic Versioning" http://semver.org
 
-------------------------------------------------------------------------------
-<<<<<<< HEAD
-<<<<<<< HEAD
-??/??/?? IAlibay, Luthaf, hmacdope, rafaelpap, jbarnoud, yuxuanzhuang
-=======
-??/??/?? IAlibay, pgbarletta, mglagolev, hmacdope, manuel.nuno.melo
 
-=======
-  
 ??/??/?? IAlibay, pgbarletta, mglagolev, hmacdope, manuel.nuno.melo, chrispfae, 
          ooprathamm, MeetB7, BFedder, v-parmar, MoSchaeffler, jbarnoud, jandom,
          xhgchen, jaclark5
->>>>>>> mda_origin/develop
  * 2.5.0
 
 Fixes
@@ -145,13 +136,9 @@ Enhancements
   * A new AuxReader for the GROMACS EDR file format was implemented.
     (Issue # 3629, PR # 3749)
   * Added benchmarks for bonds topology attribute (Issue #3785, PR #3806)
-<<<<<<< HEAD
   * Improve performance in Universe serialization by no explicit redirection to
     the timestep. (Issue #3721, PR #3722)
-
-=======
   * Added isolayer selection method (Issue #3845)
->>>>>>> mda_origin/develop
 
 Changes
  * Minimum numpy version for python 3.10 and Windows has been raised to 1.22.3
