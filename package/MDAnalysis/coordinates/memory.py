@@ -379,7 +379,7 @@ class MemoryReader(base.ProtoReader):
         self.ts.dt = dt
 
         if dimensions is None:
-            self.dimensions_array = np.zeros((self.n_frames, 6), dtype=np.float32)
+            self._dimensions_array = SharedMemoryArray(np.zeros([self.n_frames, 6]), dtype=np.float32)
         else:
             try:
                 dimensions = np.asarray(dimensions, dtype=np.float32)
@@ -395,7 +395,7 @@ class MemoryReader(base.ProtoReader):
                 raise ValueError("Provided dimensions array has shape {}. "
                                  "This must be a array of shape (6,) or "
                                  "(n_frames, 6)".format(dimensions.shape))
-            self.dimensions_array = dimensions
+            self._dimensions_array = SharedMemoryArray(dimensions, dtype=np.float32)
 
         self.ts.frame = -1
         self.ts.time = -1
@@ -479,6 +479,10 @@ class MemoryReader(base.ProtoReader):
         self._coordinate_array = SharedMemoryArray(coordinate_array,
                                                    dtype='float32')
         self.stored_format = order
+
+    @property
+    def dimensions_array(self):
+        return self._dimensions_array.array
 
     @property
     def coordinate_array(self):
