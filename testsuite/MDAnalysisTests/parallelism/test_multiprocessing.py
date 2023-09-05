@@ -92,19 +92,6 @@ def u(request):
         top, trj = request.param
         return mda.Universe(top, trj)
 
-@pytest.fixture(scope="function")
-def temp_xtc(tmp_path):
-    fresh_xtc = tmp_path / "testing.xtc"
-    shutil.copy(XTC, fresh_xtc)
-    # In principle there is no possibility that the offset for
-    # fresh_xtc exists as it is a fresh copy for every test. However,
-    # the code is left for documentation.
-    try:
-        os.remove(MDAnalysis.coordinates.XDR.offsets_filename(fresh_xtc))
-    except OSError:
-        pass
-    return fresh_xtc
-
 
 # Define target functions here
 # inside test functions doesn't work
@@ -145,14 +132,24 @@ def test_universe_unpickle_in_new_process():
     assert_equal(ref, res)
 
 
-def test_creating_multiple_universe_without_offset(temp_xtc, ncopies=3):
+def test_creating_multiple_universe_without_offset(tmp_path, ncopies=3):
     #  test if they can be created without generating
     #  the offset simultaneously.
     #  The tested XTC file is way too short to induce a race scenario but the
     #  test is included as documentation for the scenario that used to create
     #  a problem (see PR #3375 and issues #3230, #1988)
 
-    args = (GRO, str(temp_xtc))
+    fresh_xtc = tmp_path / "testing.xtc"
+    shutil.copy(XTC, fresh_xtc)
+    # In principle there is no possibility that the offset for
+    # fresh_xtc exists as it is a fresh copy for every test. However,
+    # the code is left for documentation.
+    try:
+        os.remove(MDAnalysis.coordinates.XDR.offsets_filename(fresh_xtc))
+    except OSError:
+        pass
+    
+    args = (GRO, str(fresh_xtc))
     with multiprocessing.Pool(2) as p:
         universes = [p.apply_async(mda.Universe, args) for i in range(ncopies)]
         universes = [universe.get() for universe in universes]
