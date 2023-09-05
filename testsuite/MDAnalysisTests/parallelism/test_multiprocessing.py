@@ -132,6 +132,10 @@ def test_universe_unpickle_in_new_process():
     assert_equal(ref, res)
 
 
+def create_universe(args):
+    return mda.Universe(*args)
+
+
 def test_creating_multiple_universe_without_offset(tmp_path, ncopies=3):
     #  test if they can be created without generating
     #  the offset simultaneously.
@@ -151,9 +155,7 @@ def test_creating_multiple_universe_without_offset(tmp_path, ncopies=3):
     
     args = (GRO, str(fresh_xtc))
     with multiprocessing.Pool(2) as p:
-        universes = [p.apply_async(mda.Universe, args) for i in range(ncopies)]
-        universes = [universe.get() for universe in universes]
-
+        universes = [p.apply(create_universe, (args, )) for i in range(ncopies)]
 
     assert_equal(universes[0].trajectory._xdr.offsets,
                  universes[1].trajectory._xdr.offsets)
