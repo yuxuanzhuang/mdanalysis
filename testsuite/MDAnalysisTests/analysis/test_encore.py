@@ -122,7 +122,6 @@ inconsistent results")
 
     @pytest.mark.xfail(os.name == 'nt',
                        reason="Not yet supported on Windows.")
-    @pytest.mark.skip(reason='test to see if it times out')
     def test_parallel_calculation(self):
 
         arguments = [tuple([i]) for i in np.arange(0,100)]
