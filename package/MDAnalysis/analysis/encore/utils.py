@@ -318,6 +318,7 @@ class ParallelCalculation(object):
             results.put('STOP')
             for i in iter(results.get, 'STOP'):
                 results_list.append(i)
+            q.close()
 
         return tuple(sorted(results_list, key=lambda x: x[0]))
 
