@@ -297,28 +297,27 @@ class ParallelCalculation(object):
                 results_list.append((i, self.functions[i](*self.args[i],
                                                           **self.kwargs[i])))
         else:
-            manager = Manager()
-            q = manager.Queue()
-            results = manager.Queue()
+            with Manager() as manager:
+                q = manager.Queue()
+                results = manager.Queue()
 
-            workers = [Process(target=self.worker, args=(q, results)) for i in
-                       range(self.n_jobs)]
+                workers = [Process(target=self.worker, args=(q, results)) for i in
+                        range(self.n_jobs)]
 
-            for i in range(self.nruns):
-                q.put(i)
-            for w in workers:
-                q.put('STOP')
+                for i in range(self.nruns):
+                    q.put(i)
+                for w in workers:
+                    q.put('STOP')
 
-            for w in workers:
-                w.start()
+                for w in workers:
+                    w.start()
 
-            for w in workers:
-                w.join()
+                for w in workers:
+                    w.join()
 
-            results.put('STOP')
-            for i in iter(results.get, 'STOP'):
-                results_list.append(i)
-            q.close()
+                results.put('STOP')
+                for i in iter(results.get, 'STOP'):
+                    results_list.append(i)
 
         return tuple(sorted(results_list, key=lambda x: x[0]))
 
