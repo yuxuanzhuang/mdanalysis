@@ -137,7 +137,6 @@ inconsistent results")
                 arguments[i][0]**2,
                 err_msg="Unexpected results from ParallelCalculation")
 
-    @pytest.mark.skip(reason='test to see if it times out')
     def test_rmsd_matrix_with_superimposition(self, ens1):
         conf_dist_matrix = encore.confdistmatrix.conformational_distance_matrix(
             ens1,
@@ -155,7 +154,6 @@ inconsistent results")
         for i, rmsd in enumerate(reference.results.rmsd):
             assert_allclose(conf_dist_matrix[0, i], rmsd[2], rtol=0, atol=1.5e-3, err_msg=err_msg)
 
-    @pytest.mark.skip(reason='test to see if it times out')
     def test_rmsd_matrix_with_superimposition_custom_weights(self, ens1):
         conf_dist_matrix = encore.confdistmatrix.conformational_distance_matrix(
             ens1,
@@ -176,7 +174,6 @@ inconsistent results")
         for i in range(conf_dist_matrix_custom.size):
             assert_allclose(conf_dist_matrix_custom[0, i], conf_dist_matrix[0, i], rtol=0, atol=1.5e-7)
 
-    @pytest.mark.skip(reason='test to see if it times out')
     def test_rmsd_matrix_without_superimposition(self, ens1):
         selection_string = "name CA"
         selection = ens1.select_atoms(selection_string)
