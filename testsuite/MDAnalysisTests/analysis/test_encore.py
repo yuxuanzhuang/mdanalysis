@@ -45,7 +45,6 @@ import MDAnalysis.analysis.encore.confdistmatrix as confdistmatrix
 def function(x):
     return x**2
 
-@pytest.mark.skip(reason='test to see if it times out')
 class TestEncore(object):
     @pytest.fixture(scope='class')
     def ens1_template(self):
@@ -123,6 +122,7 @@ inconsistent results")
 
     @pytest.mark.xfail(os.name == 'nt',
                        reason="Not yet supported on Windows.")
+    @pytest.mark.skip(reason='test to see if it times out')
     def test_parallel_calculation(self):
 
         arguments = [tuple([i]) for i in np.arange(0,100)]
@@ -138,6 +138,7 @@ inconsistent results")
                 arguments[i][0]**2,
                 err_msg="Unexpected results from ParallelCalculation")
 
+    @pytest.mark.skip(reason='test to see if it times out')
     def test_rmsd_matrix_with_superimposition(self, ens1):
         conf_dist_matrix = encore.confdistmatrix.conformational_distance_matrix(
             ens1,
@@ -155,6 +156,7 @@ inconsistent results")
         for i, rmsd in enumerate(reference.results.rmsd):
             assert_allclose(conf_dist_matrix[0, i], rmsd[2], rtol=0, atol=1.5e-3, err_msg=err_msg)
 
+    @pytest.mark.skip(reason='test to see if it times out')
     def test_rmsd_matrix_with_superimposition_custom_weights(self, ens1):
         conf_dist_matrix = encore.confdistmatrix.conformational_distance_matrix(
             ens1,
@@ -175,6 +177,7 @@ inconsistent results")
         for i in range(conf_dist_matrix_custom.size):
             assert_allclose(conf_dist_matrix_custom[0, i], conf_dist_matrix[0, i], rtol=0, atol=1.5e-7)
 
+    @pytest.mark.skip(reason='test to see if it times out')
     def test_rmsd_matrix_without_superimposition(self, ens1):
         selection_string = "name CA"
         selection = ens1.select_atoms(selection_string)
@@ -470,7 +473,7 @@ inconsistent results")
         assert average < average_upper_bound, err_msg
         assert stdev < stdev_upper_bound, error_msg
 
-@pytest.mark.skip(reason='test to see if it times out')
+
 class TestEncoreClustering(object):
     @pytest.fixture(scope='class')
     def ens1_template(self):
@@ -680,7 +683,7 @@ class TestEncoreClustering(object):
         assert_equal(repr(cluster), repr_message)
 
 
-@pytest.mark.skip(reason='test to see if it times out')
+
 class TestEncoreClusteringSklearn(object):
     """The tests in this class were duplicated from the affinity propagation
     tests in scikit-learn"""
@@ -776,7 +779,7 @@ class TestEncoreClusteringSklearn(object):
                      "Basic clustering test failed to give the right"\
                     "number of clusters: {0} vs {1}".format(self.n_clusters, len(ccs))
 
-@pytest.mark.skip(reason='test to see if it times out')
+
 class TestEncoreDimensionalityReduction(object):
     @pytest.fixture(scope='class')
     def ens1_template(self):
@@ -889,7 +892,7 @@ class TestEncoreDimensionalityReduction(object):
                         encore.PrincipalComponentAnalysis(dims[1])])
         assert_equal(coordinates[1].shape[0], dims[1])
 
-@pytest.mark.skip(reason='test to see if it times out')
+
 class TestEncoreConfDistMatrix(object):
     def test_get_distance_matrix(self):
         # Issue #1324
