@@ -106,8 +106,12 @@ jobs:
         pip list
 
     - name: run_tests
+    
       if: contains(matrix.name, 'asv_check') != true
       run: |
+        export OPENBLAS_NUM_THREADS=1
+        export GOTO_NUM_THREADS=1
+        export OMP_NUM_THREADS=1
         PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
         if [ ${{ matrix.codecov }} = "true" ]; then
           PYTEST_FLAGS="${PYTEST_FLAGS} --cov-config=.coveragerc --cov=MDAnalysis --cov-report=xml"
