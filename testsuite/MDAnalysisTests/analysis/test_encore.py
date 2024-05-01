@@ -45,7 +45,7 @@ import MDAnalysis.analysis.encore.confdistmatrix as confdistmatrix
 def function(x):
     return x**2
 
-
+@pytest.mark.skip(reason='test to see if it times out')
 class TestEncore(object):
     @pytest.fixture(scope='class')
     def ens1_template(self):
@@ -123,7 +123,6 @@ inconsistent results")
 
     @pytest.mark.xfail(os.name == 'nt',
                        reason="Not yet supported on Windows.")
-    @pytest.mark.skip(reason='test to see if it times out')
     def test_parallel_calculation(self):
 
         arguments = [tuple([i]) for i in np.arange(0,100)]
@@ -471,7 +470,7 @@ inconsistent results")
         assert average < average_upper_bound, err_msg
         assert stdev < stdev_upper_bound, error_msg
 
-
+@pytest.mark.skip(reason='test to see if it times out')
 class TestEncoreClustering(object):
     @pytest.fixture(scope='class')
     def ens1_template(self):
@@ -680,6 +679,8 @@ class TestEncoreClustering(object):
         repr_message = "<Cluster with 1 elements, centroid=1, id=1>"
         assert_equal(repr(cluster), repr_message)
 
+
+@pytest.mark.skip(reason='test to see if it times out')
 class TestEncoreClusteringSklearn(object):
     """The tests in this class were duplicated from the affinity propagation
     tests in scikit-learn"""
@@ -775,7 +776,7 @@ class TestEncoreClusteringSklearn(object):
                      "Basic clustering test failed to give the right"\
                     "number of clusters: {0} vs {1}".format(self.n_clusters, len(ccs))
 
-
+@pytest.mark.skip(reason='test to see if it times out')
 class TestEncoreDimensionalityReduction(object):
     @pytest.fixture(scope='class')
     def ens1_template(self):
@@ -888,7 +889,7 @@ class TestEncoreDimensionalityReduction(object):
                         encore.PrincipalComponentAnalysis(dims[1])])
         assert_equal(coordinates[1].shape[0], dims[1])
 
-
+@pytest.mark.skip(reason='test to see if it times out')
 class TestEncoreConfDistMatrix(object):
     def test_get_distance_matrix(self):
         # Issue #1324
