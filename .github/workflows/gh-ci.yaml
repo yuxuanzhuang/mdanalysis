@@ -115,10 +115,13 @@ jobs:
         export MKL_NUM_THREADS=1
 
         # only set physical cores for the multiprocessing jobs
-        nworkers=$(python -c "import psutil; print(psutil.cpu_count(logical=False))")
-        echo "Using $nworkers workers"
+#        nworkers=$(python -c "import psutil; print(psutil.cpu_count(logical=False))")
+#        echo "Using $nworkers workers"
 
-        export PYTEST_XDIST_AUTO_NUM_WORKERS=$nworkers
+#        export PYTEST_XDIST_AUTO_NUM_WORKERS=$nworkers
+        cat /proc/cpuinfo
+        export PYTEST_XDIST_AUTO_NUM_WORKERS=2
+
         PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
         if [ ${{ matrix.codecov }} = "true" ]; then
           PYTEST_FLAGS="${PYTEST_FLAGS} --cov-config=.coveragerc --cov=MDAnalysis --cov-report=xml"
