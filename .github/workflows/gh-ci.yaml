@@ -116,6 +116,7 @@ jobs:
 
         # only set physical cores for the multiprocessing jobs
         nworkers=$(python -c "import psutil; print(psutil.cpu_count(logical=False))")
+        echo "Using $nworkers workers"
 
         export PYTEST_XDIST_AUTO_NUM_WORKERS=$nworkers
         PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
