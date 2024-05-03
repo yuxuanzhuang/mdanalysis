@@ -69,6 +69,7 @@ jobs:
     - name: remove_old_micromamba
       run: |
         rm -rf $HOME/micromamba
+        rm -rf $HOME/micromamba-bin
 
     - name: setup_micromamba
       uses: mamba-org/setup-micromamba@v1
