@@ -123,7 +123,6 @@ jobs:
 #        echo "Using $nworkers workers"
 
 #        export PYTEST_XDIST_AUTO_NUM_WORKERS=$nworkers
-        cat /proc/cpuinfo
         export PYTEST_XDIST_AUTO_NUM_WORKERS=2
 
         PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
