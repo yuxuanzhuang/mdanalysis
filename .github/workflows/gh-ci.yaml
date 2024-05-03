@@ -27,7 +27,7 @@ jobs:
     strategy:
         fail-fast: false
         matrix:
-          os: [self-hosted, ]
+          os: [ubuntu-latest, ]
           python-version: ["3.10", "3.11", "3.12"]
           full-deps: [true, ]
           codecov: [true, ]
@@ -112,6 +112,14 @@ jobs:
         export OPENBLAS_NUM_THREADS=1
         export GOTO_NUM_THREADS=1
         export OMP_NUM_THREADS=1
+        export MKL_NUM_THREADS=1
+
+        # remove one core for the multiprocessing jobs
+        nworkers=$(python -c "import psutil; print(psutil.cpu_count(logical=False))")
+        if [ $nworkers -gt 1 ]; then
+          nworkers=$((nworkers - 1))
+        fi
+        export PYTEST_XDIST_AUTO_NUM_WORKERS=$nworkers
         PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
         if [ ${{ matrix.codecov }} = "true" ]; then
           PYTEST_FLAGS="${PYTEST_FLAGS} --cov-config=.coveragerc --cov=MDAnalysis --cov-report=xml"
