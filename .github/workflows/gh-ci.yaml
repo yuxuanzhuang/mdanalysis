@@ -114,11 +114,9 @@ jobs:
         export OMP_NUM_THREADS=1
         export MKL_NUM_THREADS=1
 
-        # remove one core for the multiprocessing jobs
+        # only set physical cores for the multiprocessing jobs
         nworkers=$(python -c "import psutil; print(psutil.cpu_count(logical=False))")
-        if [ $nworkers -gt 1 ]; then
-          nworkers=$((nworkers - 1))
-        fi
+
         export PYTEST_XDIST_AUTO_NUM_WORKERS=$nworkers
         PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
         if [ ${{ matrix.codecov }} = "true" ]; then

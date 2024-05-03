@@ -158,6 +158,8 @@ runs:
         else
           CONDA_DEPS="${CONDA_MIN_DEPS} ${{ inputs.extra-conda-deps }}"
         fi
+        echo "CONDA_DEPS: ${CONDA_DEPS}"
+        echo $CONDARC
 
         # do the install
         if [ ${{ inputs.mamba }} = "true" ]; then
