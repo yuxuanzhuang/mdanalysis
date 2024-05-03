@@ -131,7 +131,12 @@ jobs:
       $env:OPENBLAS_NUM_THREADS=1
       $env:GOTO_NUM_THREADS=1
       $env:OMP_NUM_THREADS=1
-      pytest MDAnalysisTests --disable-pytest-warnings -n auto --timeout=200 -rsx --cov=MDAnalysis
+      $env:MKL_NUM_THREADS=1
+
+      # print os.environ to check that the env vars are set
+      python -c "import os; print(os.environ)"
+
+      pytest MDAnalysisTests --disable-pytest-warnings -n 1 --timeout=200 -rsx --cov=MDAnalysis
     displayName: 'Run MDAnalysis Test Suite'
   - script: |
       curl -s https://codecov.io/bash | bash

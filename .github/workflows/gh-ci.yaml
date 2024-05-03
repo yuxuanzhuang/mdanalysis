@@ -27,7 +27,7 @@ jobs:
     strategy:
         fail-fast: false
         matrix:
-          os: [self-hosted, ]
+          os: [ubuntu-latest, ]
           python-version: ["3.10", "3.11", "3.12"]
           full-deps: [true, ]
           codecov: [true, ]
@@ -65,11 +65,6 @@ jobs:
       uses: ./.github/actions/setup-os
       with:
         os-type: ${{ matrix.os }}
-
-    - name: remove_old_micromamba
-      run: |
-        rm -rf $HOME/micromamba
-        rm -rf $HOME/micromamba-bin
 
     - name: setup_micromamba
       uses: mamba-org/setup-micromamba@v1
@@ -126,6 +121,8 @@ jobs:
           PYTEST_FLAGS="${PYTEST_FLAGS} --cov-config=.coveragerc --cov=MDAnalysis --cov-report=xml"
         fi
         echo $PYTEST_FLAGS
+
+        python -c "import os; print(os.environ)"
         pytest -n auto --timeout=200 testsuite/MDAnalysisTests $PYTEST_FLAGS
 
     - name: run_asv
