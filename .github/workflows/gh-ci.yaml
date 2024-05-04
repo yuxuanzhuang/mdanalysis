@@ -114,7 +114,7 @@ jobs:
 
         export PYTEST_XDIST_AUTO_NUM_WORKERS=2
 
-        PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
+        PYTEST_FLAGS="-vvv -s --disable-pytest-warnings --durations=0"
         if [ ${{ matrix.codecov }} = "true" ]; then
           PYTEST_FLAGS="${PYTEST_FLAGS} --cov-config=.coveragerc --cov=MDAnalysis --cov-report=xml"
         fi
