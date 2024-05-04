@@ -76,6 +76,8 @@ inputs:
     default: 'netcdf4'
   networkx:
     default: 'networkx'
+  cuda-version:
+    default: 'cuda-version>=12.0'
   openmm:
     default: 'openmm'
   pytng:
@@ -144,6 +146,7 @@ runs:
           ${{ inputs.joblib }}
           ${{ inputs.netcdf4 }}
           ${{ inputs.networkx }}
+          ${{ inputs.cuda-version }}
           ${{ inputs.openmm }}
           ${{ inputs.pytng }}
           ${{ inputs.rdkit }}
