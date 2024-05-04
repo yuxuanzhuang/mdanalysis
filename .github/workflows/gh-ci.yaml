@@ -73,10 +73,8 @@ jobs:
         create-args: >-
           python=${{ matrix.python-version }}
           pip
-        # using jaime's shim to avoid pulling down the cudatoolkit
         condarc: |
           channels:
-            - jaimergp/label/unsupported-cudatoolkit-shim
             - conda-forge
             - bioconda
 
@@ -159,10 +157,8 @@ jobs:
         create-args: >-
           python=3.10
           pip
-        # using jaime's shim to avoid pulling down the cudatoolkit
         condarc: |
           channels:
-            - jaimergp/label/unsupported-cudatoolkit-shim
             - conda-forge
             - bioconda
 
