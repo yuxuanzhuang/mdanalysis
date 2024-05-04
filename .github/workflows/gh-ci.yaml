@@ -32,8 +32,8 @@ jobs:
           full-deps: [true, ]
           codecov: [true, ]
           include:
-            - name: macOS_monterey_py311
-              os: macOS-12
+            - name: macOS_ventura_py312
+              os: macOS-13
               python-version: "3.12"
               full-deps: true
               codecov: true
