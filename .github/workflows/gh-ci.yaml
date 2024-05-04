@@ -21,7 +21,7 @@ defaults:
 
 jobs:
   main_tests:
-    if: "github.repository == 'MDAnalysis/mdanalysis'"
+    if: "github.repository == 'yuxuanzhuang/mdanalysis'"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
@@ -32,8 +32,8 @@ jobs:
           full-deps: [true, ]
           codecov: [true, ]
           include:
-            - name: macOS_monterey_py311
-              os: macOS-12
+            - name: macOS_ventura_py312
+              os: macOS-13
               python-version: "3.12"
               full-deps: true
               codecov: true
@@ -73,10 +73,8 @@ jobs:
         create-args: >-
           python=${{ matrix.python-version }}
           pip
-        # using jaime's shim to avoid pulling down the cudatoolkit
         condarc: |
           channels:
-            - jaimergp/label/unsupported-cudatoolkit-shim
             - conda-forge
             - bioconda
 
@@ -106,13 +104,23 @@ jobs:
         pip list
 
     - name: run_tests
+    
       if: contains(matrix.name, 'asv_check') != true
       run: |
-        PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
+        export OPENBLAS_NUM_THREADS=1
+        export GOTO_NUM_THREADS=1
+        export OMP_NUM_THREADS=1
+        export MKL_NUM_THREADS=1
+
+        export PYTEST_XDIST_AUTO_NUM_WORKERS=2
+
+        PYTEST_FLAGS="-vvv -s --disable-pytest-warnings --durations=0"
         if [ ${{ matrix.codecov }} = "true" ]; then
           PYTEST_FLAGS="${PYTEST_FLAGS} --cov-config=.coveragerc --cov=MDAnalysis --cov-report=xml"
         fi
         echo $PYTEST_FLAGS
+
+        python -c "import os; print(os.environ)"
         pytest -n auto --timeout=200 testsuite/MDAnalysisTests $PYTEST_FLAGS
 
     - name: run_asv
@@ -132,7 +140,7 @@ jobs:
 
 
   build_docs:
-    if: "github.repository == 'MDAnalysis/mdanalysis'"
+    if: "github.repository == 'yuxuanzhuang/mdanalysis'"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -149,10 +157,8 @@ jobs:
         create-args: >-
           python=3.10
           pip
-        # using jaime's shim to avoid pulling down the cudatoolkit
         condarc: |
           channels:
-            - jaimergp/label/unsupported-cudatoolkit-shim
             - conda-forge
             - bioconda
 
@@ -233,7 +239,7 @@ jobs:
 
 
   sdist_check_and_build:
-    if: "github.repository == 'MDAnalysis/mdanalysis'"
+    if: "github.repository == 'yuxuanzhuang/mdanalysis'"
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
