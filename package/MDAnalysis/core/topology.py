@@ -60,7 +60,7 @@ import contextlib
 
 import numpy as np
 import typing
-
+from multiprocessing.shared_memory import SharedMemory
 from .topologyattrs import Atomindices, Resindices, Segindices
 from ..exceptions import NoDataError
 
@@ -189,22 +189,34 @@ class TransTable(object):
         self.n_residues = n_residues
         self.n_segments = n_segments
 
+        # set memory for the arrays to minimal 8 bytes
+        ar_size = n_atoms * 8 if n_atoms > 0 else 8
+        rs_size = n_residues * 8 if n_residues > 0 else 8
+        
+        self._shm_ar = SharedMemory(create=True, size=ar_size)
+        self._shm_rs = SharedMemory(create=True, size=rs_size)
+
         # built atom-to-residue mapping, and vice-versa
         if atom_resindex is None:
-            self._AR = np.zeros(n_atoms, dtype=np.intp)
+            _AR = np.zeros(n_atoms, dtype=np.intp)
         else:
-            self._AR = np.asarray(atom_resindex, dtype=np.intp).copy()
-            if not len(self._AR) == n_atoms:
+            _AR = np.asarray(atom_resindex, dtype=np.intp).copy()
+            if not len(_AR) == n_atoms:
                 raise ValueError("atom_resindex must be len n_atoms")
+
+        self._AR = np.ndarray(_AR.shape, dtype=np.intp, buffer=self._shm_ar.buf)
+        self._AR[:] = _AR
         self._RA = None
 
         # built residue-to-segment mapping, and vice-versa
         if residue_segindex is None:
-            self._RS = np.zeros(n_residues, dtype=np.intp)
+            _RS = np.zeros(n_residues, dtype=np.intp)
         else:
-            self._RS = np.asarray(residue_segindex, dtype=np.intp).copy()
-            if not len(self._RS) == n_residues:
+            _RS = np.asarray(residue_segindex, dtype=np.intp).copy()
+            if not len(_RS) == n_residues:
                 raise ValueError("residue_segindex must be len n_residues")
+        self._RS = np.ndarray(_RS.shape, dtype=np.intp, buffer=self._shm_rs.buf)
+        self._RS[:] = _RS
         self._SR = None
 
     def copy(self):
@@ -435,10 +447,27 @@ class TransTable(object):
 
     def __getstate__(self):
         # don't serialize _RA and _SR for performance.
-        attrs = self.__dict__
-        attrs['_RA'] = None
-        attrs['_SR'] = None
-        return attrs
+
+        return {'n_atoms': self.n_atoms,
+                'n_residues': self.n_residues,
+                'n_segments': self.n_segments,
+                'shm_ar': self._shm_ar.name,
+                'shm_rs': self._shm_rs.name}
+
+    def __setstate__(self, state):
+        self.n_atoms = state['n_atoms']
+        self.n_residues = state['n_residues']
+        self.n_segments = state['n_segments']
+        self._shm_ar = SharedMemory(state['shm_ar'])
+        self._shm_rs = SharedMemory(state['shm_rs'])
+        self._AR = np.ndarray(self.n_atoms, dtype=np.intp,
+                              buffer=self._shm_ar.buf)
+        self._RS = np.ndarray(self.n_residues, dtype=np.intp,
+                              buffer=self._shm_rs.buf)
+        self._RA = None
+        self._SR = None
+
+        
 
 
 class Topology(object):
@@ -498,6 +527,11 @@ class Topology(object):
                 continue
             new.add_TopologyAttr(attr.copy())
         return new
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        for attr in self.attrs:
+            attr.top = self
 
     @property
     def n_atoms(self):

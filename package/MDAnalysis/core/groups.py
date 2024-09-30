@@ -4266,6 +4266,7 @@ class ComponentBase(_MutableBase):
                 raise AttributeError(err.format(selfcls=selfcls, attr=attr,
                                                 singular=cls.singular))
             else:
+                print(attr)
                 err = 'This Universe does not contain {singular} information'
                 raise NoDataError(err.format(singular=cls.singular))
         else:

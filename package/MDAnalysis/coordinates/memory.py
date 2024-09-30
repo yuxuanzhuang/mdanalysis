@@ -186,7 +186,8 @@ import errno
 import numpy as np
 import warnings
 import copy
-
+from multiprocessing.shared_memory import SharedMemory
+from functools import cached_property
 from . import base
 from .timestep import Timestep
 
@@ -342,9 +343,10 @@ class MemoryReader(base.ProtoReader):
                                  'to match coordinates {}'
                                  ''.format(velocities.shape,
                                            self.coordinate_array.shape))
-            self.velocity_array = velocities.astype(np.float32, copy=False)
+            self._velocity_array = SharedMemoryArray(velocities,
+                                                    dtype='float32')
         else:
-            self.velocity_array = None
+            self._velocity_array = None
 
         if forces is not None:
             try:
@@ -359,9 +361,9 @@ class MemoryReader(base.ProtoReader):
                                  'to match coordinates {}'
                                  ''.format(forces.shape,
                                            self.coordinate_array.shape))
-            self.force_array = forces.astype(np.float32, copy=False)
+            self._force_array = SharedMemoryArray(forces, dtype='float32')
         else:
-            self.force_array = None
+            self._force_array = None
 
         provided_n_atoms = kwargs.pop("n_atoms", None)
         if (provided_n_atoms is not None and
@@ -377,7 +379,7 @@ class MemoryReader(base.ProtoReader):
         self.ts.dt = dt
 
         if dimensions is None:
-            self.dimensions_array = np.zeros((self.n_frames, 6), dtype=np.float32)
+            self._dimensions_array = SharedMemoryArray(np.zeros([self.n_frames, 6]), dtype=np.float32)
         else:
             try:
                 dimensions = np.asarray(dimensions, dtype=np.float32)
@@ -393,7 +395,7 @@ class MemoryReader(base.ProtoReader):
                 raise ValueError("Provided dimensions array has shape {}. "
                                  "This must be a array of shape (6,) or "
                                  "(n_frames, 6)".format(dimensions.shape))
-            self.dimensions_array = dimensions
+            self._dimensions_array = SharedMemoryArray(dimensions, dtype=np.float32)
 
         self.ts.frame = -1
         self.ts.time = -1
@@ -474,8 +476,31 @@ class MemoryReader(base.ProtoReader):
             coordinates).
         """
         # Only make copy if not already in float32 format
-        self.coordinate_array = coordinate_array.astype('float32', copy=False)
+        self._coordinate_array = SharedMemoryArray(coordinate_array,
+                                                   dtype='float32')
         self.stored_format = order
+
+    @property
+    def dimensions_array(self):
+        return self._dimensions_array.array
+
+    @property
+    def coordinate_array(self):
+        return self._coordinate_array.array
+
+    @property
+    def velocity_array(self):
+        if self._velocity_array is None:
+            return None
+        else:
+            return self._velocity_array.array
+
+    @property
+    def force_array(self):
+        if self._force_array is None:
+            return None
+        else:
+            return self._force_array.array
 
     def get_array(self):
         """
@@ -664,3 +689,44 @@ class MemoryReader(base.ProtoReader):
         # to avoid applying the same transformations multiple times on each frame
 
         return ts
+
+
+class SharedMemoryArray(object):
+    """A shared memory array that can be pickled and unpickled.
+
+    Parameters
+    ----------
+    shared_memory : SharedMemory
+        The shared memory object to wrap.
+    shape : tuple
+        The shape of the array.
+    dtype : numpy.dtype
+        The dtype of the array.
+    """
+
+    def __init__(self, array, dtype=None):
+        self.shared_memory = SharedMemory(create=True, size=array.nbytes)
+        self.shape = array.shape
+        if dtype is None:
+            self.dtype = array.dtype
+        else:
+            self.dtype = dtype
+        self.array[:] = array
+
+    def __getstate__(self):
+        return self.dtype, self.shape, self.shared_memory.name
+
+    def __setstate__(self, state):
+        self.dtype, self.shape, name = state
+        self.shared_memory = SharedMemory(name=name)
+
+    @cached_property
+    def array(self):
+        return np.ndarray(self.shape, dtype=self.dtype, buffer=self.shared_memory.buf)
+
+    def __del__(self):
+        self.shared_memory.close()
+
+    def copy(self):
+        # create a new SharedMemoryArray with a copy of the data
+        return SharedMemoryArray(self.array.copy())

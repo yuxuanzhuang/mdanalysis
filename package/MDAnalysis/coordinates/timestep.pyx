@@ -786,11 +786,11 @@ cdef class Timestep:
             "_has_positions": self._has_positions,
             "_has_velocities": self._has_velocities,
             "_has_forces": self._has_forces,
-
+            "_particle_dependent_dim": self._particle_dependent_dim,
             "_unitcell": self._unitcell,
-            "_pos": self._pos,
-            "_velocities": self._velocities,
-            "_forces": self._forces,
+#            "_pos": self._pos,
+#            "_velocities": self._velocities,
+#            "_forces": self._forces,
 
             "_dtype": self._dtype,
             "data": self.data,
@@ -823,9 +823,34 @@ cdef class Timestep:
         self._has_velocities = state["_has_velocities"]
         self._has_forces = state["_has_forces"]
         self._unitcell = state["_unitcell"]
-        self._pos = state["_pos"]
-        self._velocities = state["_velocities"]
-        self._forces = state["_forces"]
+        self._particle_dependent_dim = state["_particle_dependent_dim"]
+#        self._pos = state["_pos"]
+#        self._velocities = state["_velocities"]
+#        self._forces = state["_forces"]
+        self._typenum = cnp.NPY_FLOAT32
+
+        cdef cnp.npy_intp particle_dependent_dim_tmp[2]
+        particle_dependent_dim_tmp[0] = 0
+        particle_dependent_dim_tmp[1] = 0
+
+        if self._has_positions:
+            self._pos = cnp.PyArray_ZEROS(
+                    2, self._particle_dependent_dim, self._typenum, 0)
+        else:
+            self._pos = cnp.PyArray_EMPTY(
+                2, particle_dependent_dim_tmp, self._typenum, 0)
+        if self._has_velocities:
+            self._velocities = cnp.PyArray_ZEROS(
+                    2, self._particle_dependent_dim, self._typenum, 0)
+        else:
+            self._velocities = cnp.PyArray_EMPTY(
+                2, particle_dependent_dim_tmp, self._typenum, 0)
+        if self._has_forces:
+            self._forces = cnp.PyArray_ZEROS(
+                    2, self._particle_dependent_dim, self._typenum, 0)
+        else:
+            self._forces = cnp.PyArray_EMPTY(
+                2, particle_dependent_dim_tmp, self._typenum, 0)
         self._dtype = state["_dtype"]
         self.data = state["data"]
         self.aux = state["aux"]
