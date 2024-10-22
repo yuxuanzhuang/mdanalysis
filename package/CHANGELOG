@@ -24,6 +24,16 @@ The rules for this file:
 Fixes
  * Fix PSFParser error when encoutering string-like resids
  * (Issue #2053, Issue #4189 PR #4582)
+ * Fix failure in double-serialization of TextIOPicklable file reader.
+   (Issue #3723, PR #3722)
+ * Fix failure to preserve modification of coordinates after serialization,
+   e.g. with transformations
+   (Issue #4633, PR #3722)
+ * Fix PSFParser error when encoutering string-like resids
+ * (Issue #2053, Issue #4189 PR #4582)
+ * Fix `MDAnalysis.analysis.align.AlignTraj` not accepting writer kwargs
+   (Issue #4564, PR #4565)
+ * Fix #4259 via removing argument `parallelizable` of `NoJump` transformation.
  * Fix doctest errors of analysis/pca.py related to rounding issues 
    (Issue #3925, PR #4377)
  * Convert openmm Quantity to raw value for KE and PE in OpenMMSimulationReader.
@@ -42,6 +52,7 @@ Fixes
  * Fix groups.py doctests using sphinx directives (Issue #3925, PR #4374)
 
 Enhancements
+ * Add `analysis.DSSP` module for protein secondary structure assignment, based on [pydssp](https://github.com/ShintaroMinami/PyDSSP)
  * Added a tqdm progress bar for `MDAnalysis.analysis.pca.PCA.transform()`
    (PR #4531)
  * Improved performance of PDBWriter (Issue #2785, PR #4472)
@@ -52,6 +63,8 @@ Enhancements
    DOI 10.1021/acs.jpcb.7b11988. (Issue #2039, PR #4524)
 
 Changes
+ * MDAnalysis now builds against numpy 2.0 rather than the
+   minimum supported numpy version (PR #4620)
  * As per SPEC0 the minimum supported Python version has been raised
    to 3.10 (PR #4502)
  * MDAnalysis.analysis.hole2 is now directly imported from the mdakit
@@ -115,8 +128,6 @@ Enhancements
     (Issue #3994, PR #4281)  
   * Add support for reading chainID info from Autodock PDBQT files (Issue #4207,
     PR #4284)
-  * Improve performance in Universe serialization by no explicit redirection to
-    the timestep. (Issue #3721, PR #3722)
 
 Changes
   * Biopython is now an optional dependency (Issue #3820, PR #4332)
@@ -267,10 +278,6 @@ Fixes
   * Fix MSD docs to use the correct error metric in example (Issue #3991)
   * Add 'PairIJ Coeffs' to the list of sections in LAMMPSParser.py
     (Issue #3336)
-  * Fix failure in double-serialization of TextIOPicklable file reader.
-    (Issue #3723, PR #3722)
-  * Fix failure to preserve modification of coordinates after serialization.
-    (Issue #3723, PR #3722)
 
 Enhancements
   * ARM64 (osx and linux) wheels now uploaded on release (Issue #4054)
@@ -437,8 +444,6 @@ Changes
     use `pip install ./package[extra_formats]` instead (PR #3810)
   * `Universe.empty` emmits less warnings (PR #3814)
   * adding element attribute to TXYZParser if all atom names are valid element symbols (PR #3826)
-  * TextIOPicklable serializes the raw class instance instead of class name.
-    (PR #3722)
 
 Deprecations
   * Direct indexing of results in analysis.nucleicacids' NucPairDist
