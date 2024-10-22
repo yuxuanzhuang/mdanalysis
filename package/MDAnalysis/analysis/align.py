@@ -200,7 +200,6 @@ import numpy as np
 try:
     import Bio.AlignIO
     import Bio.Align
-    import Bio.Align.Applications
 except ImportError:
     HAS_BIOPYTHON = False
 else:
