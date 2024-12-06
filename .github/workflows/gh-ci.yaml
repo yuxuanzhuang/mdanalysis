@@ -62,8 +62,8 @@ jobs:
             - name: windows_py312
               os: windows-latest
               python-version: "3.12"
-              full-deps: true
-              codecov: true
+              full-deps: false
+              codecov: false
     env:
       CYTHON_TRACE_NOGIL: 1
       MPLBACKEND: agg
