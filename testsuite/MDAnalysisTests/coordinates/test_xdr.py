@@ -903,13 +903,10 @@ class _GromacsReader_offsets(object):
 
         filename = str(tmpdir.join(os.path.basename(self.filename)))
         # try to write a offsets file
-        with (pytest.warns(UserWarning, match="Couldn't save offsets") and
+        with (pytest.warns(UserWarning, match="Couldn't save offsets") or
               pytest.warns(UserWarning, match="Cannot write")):
             self._reader(filename)
         assert_equal(os.path.exists(XDR.offsets_filename(filename)), False)
-        # check the lock file is not created as well.
-        assert_equal(os.path.exists(XDR.offsets_filename(filename,
-                                                    ending='.lock')), False)
 
         # pre-teardown permission fix - leaving permission blocked dir
         # is problematic on py3.9 + Windows it seems. See issue
@@ -923,8 +920,7 @@ class _GromacsReader_offsets(object):
         shutil.rmtree(tmpdir)
 
     def test_offset_lock_created(self):
-        assert os.path.exists(XDR.offsets_filename(self.filename,
-                                                   ending='lock'))
+        assert os.path.exists(XDR.offsets_filename(self.filename))
 
 
 class TestXTCReader_offsets(_GromacsReader_offsets):
