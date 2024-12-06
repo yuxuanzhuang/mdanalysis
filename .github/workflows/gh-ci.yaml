@@ -120,13 +120,13 @@ jobs:
       if: ${{ matrix.name != 'numpy_min' }}
       uses: mxschmitt/action-tmate@v3
       with:
-        detached: false
+        detached: true
   
     - name: Setup tmate session for numpy_min
       if: ${{ matrix.name == 'numpy_min' }}
       uses: mxschmitt/action-tmate@v3
       with:
-        detached: false
+        detached: true
 
     - name: run_tests
       if: contains(matrix.name, 'asv_check') != true
