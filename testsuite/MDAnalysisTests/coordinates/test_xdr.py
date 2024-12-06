@@ -894,28 +894,15 @@ class _GromacsReader_offsets(object):
     def test_persistent_offsets_readonly(self, tmpdir):
         shutil.copy(self.filename, str(tmpdir))
 
-        if os.name == 'nt':
-            # Windows platform has a unique way to deny write access
-            subprocess.call("icacls {fname} /deny Users:W".format(fname=tmpdir),
-                            shell=True)
-        else:
-            os.chmod(str(tmpdir), 0o555)
+        os.chmod(str(tmpdir), 0o555)
 
         filename = str(tmpdir.join(os.path.basename(self.filename)))
         # try to write a offsets file
-        with (pytest.warns(UserWarning, match="Couldn't save offsets") or
-              pytest.warns(UserWarning, match="Cannot write")):
+        with pytest.warns(UserWarning, match="Couldn't save offsets"):
             self._reader(filename)
         assert_equal(os.path.exists(XDR.offsets_filename(filename)), False)
 
-        # pre-teardown permission fix - leaving permission blocked dir
-        # is problematic on py3.9 + Windows it seems. See issue
-        # [4123](https://github.com/MDAnalysis/mdanalysis/issues/4123)
-        # for more details.
-        if os.name == 'nt':
-            subprocess.call(f"icacls {tmpdir} /grant Users:W", shell=True)
-        else:
-            os.chmod(str(tmpdir), 0o777)
+        os.chmod(str(tmpdir), 0o777)
 
         shutil.rmtree(tmpdir)
 
