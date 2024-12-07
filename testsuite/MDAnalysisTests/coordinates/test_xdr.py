@@ -894,7 +894,16 @@ class _GromacsReader_offsets(object):
     def test_persistent_offsets_readonly(self, tmpdir):
         shutil.copy(self.filename, str(tmpdir))
 
-        os.chmod(str(tmpdir), 0o555)
+        if os.name == 'nt':
+            # Windows platform: deny write access using `icacls`
+            subprocess.run(
+                f"icacls {tmpdir} /deny Users:W",
+                shell=True,
+                check=True  # Raises an error if the command fails
+            )
+        else:
+            # Non-Windows platforms: use chmod for read and execute only
+            os.chmod(str(tmpdir), 0o555)
 
         filename = str(tmpdir.join(os.path.basename(self.filename)))
         # try to write a offsets file
@@ -902,8 +911,16 @@ class _GromacsReader_offsets(object):
             self._reader(filename)
         assert_equal(os.path.exists(XDR.offsets_filename(filename)), False)
 
-        os.chmod(str(tmpdir), 0o777)
-
+        if os.name == 'nt':
+            # Windows platform: deny write access using `icacls`
+            subprocess.run(
+                f"icacls {tmpdir} /grant Users:W",
+                shell=True,
+                check=True  # Raises an error if the command fails
+            )
+        else:
+            # Non-Windows platforms: use chmod for read and execute only
+            os.chmod(str(tmpdir), 0o777)
         shutil.rmtree(tmpdir)
 
     def test_offset_lock_created(self):
