@@ -897,7 +897,7 @@ class _GromacsReader_offsets(object):
         if os.name == 'nt':
             # Windows platform: deny write access using `icacls`
             subprocess.run(
-                f"icacls {tmpdir} /deny Users:W /T",
+                f"icacls {tmpdir} /deny Users:W",
                 shell=True,
                 check=True  # Raises an error if the command fails
             )
