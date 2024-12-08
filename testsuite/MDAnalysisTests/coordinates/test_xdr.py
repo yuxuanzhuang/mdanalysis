@@ -911,18 +911,7 @@ class _GromacsReader_offsets(object):
             self._reader(filename)
         assert_equal(os.path.exists(XDR.offsets_filename(filename)), False)
 
-        if os.name == 'nt':
-            # Windows platform: deny write access using `icacls`
-            subprocess.run(
-                f"icacls {tmpdir} /grant Users:W",
-                shell=True,
-                check=True  # Raises an error if the command fails
-            )
-        else:
-            # Non-Windows platforms: use chmod for read and execute only
-            os.chmod(str(tmpdir), 0o777)
-        shutil.rmtree(tmpdir)
-
+    
     def test_offset_lock_created(self):
         assert os.path.exists(XDR.offsets_filename(self.filename))
 
