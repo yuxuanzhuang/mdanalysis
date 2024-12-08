@@ -22,7 +22,7 @@
 #
 import pytest
 from unittest.mock import patch
-
+from time import time
 import re
 import os
 import shutil
@@ -897,13 +897,22 @@ class _GromacsReader_offsets(object):
         if os.name == 'nt':
             # Windows platform: deny write access using `icacls`
             subprocess.run(
-                f"icacls {tmpdir} /deny Users:W",
+                f"icacls {tmpdir} /deny Users:W /T",
                 shell=True,
                 check=True  # Raises an error if the command fails
+            )
+            # print the permissions to check if they are set correctly
+            subprocess.run(
+                f'icacls {tmpdir}',
+                shell=True,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
             )
         else:
             # Non-Windows platforms: use chmod for read and execute only
             os.chmod(str(tmpdir), 0o555)
+        time.sleep(1)  # wait for permissions to be set
 
         filename = str(tmpdir.join(os.path.basename(self.filename)))
         # try to write a offsets file
