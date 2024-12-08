@@ -22,7 +22,7 @@
 #
 import pytest
 from unittest.mock import patch
-from time import time
+import time
 import re
 import os
 import shutil
