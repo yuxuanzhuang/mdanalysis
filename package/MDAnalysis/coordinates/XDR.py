@@ -36,6 +36,9 @@ MDAnalysis.lib.formats.libmdaxdr: Low level xdr format reader
 
 import errno
 import numpy as np
+import os
+from pathlib import Path
+
 from os.path import getctime, getsize, isfile, split, join
 import warnings
 from filelock import FileLock
@@ -197,6 +200,7 @@ class XDRBaseReader(base.ReaderBase):
 
         #  check if the location of the lock is writable.
         try:
+            Path(lock_name).parent.mkdir(parents=True, exist_ok=True)
             with FileLock(lock_name) as filelock:
                 pass
         except OSError as e:
