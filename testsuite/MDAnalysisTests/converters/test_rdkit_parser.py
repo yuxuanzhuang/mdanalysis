@@ -5,7 +5,7 @@
 # Copyright (c) 2006-2017 The MDAnalysis Development Team and contributors
 # (see the file AUTHORS for the full list of names)
 #
-# Released under the GNU Public Licence, v2 or any higher version
+# Released under the Lesser GNU Public Licence, v2.1 or any higher version
 #
 # Please cite your use of MDAnalysis in published work:
 #
@@ -24,7 +24,6 @@
 import warnings
 import pytest
 import numpy as np
-from numpy.lib import NumpyVersion
 from numpy.testing import assert_equal
 
 import MDAnalysis as mda
@@ -33,25 +32,25 @@ from MDAnalysisTests.datafiles import mol2_molecule, PDB_helix, SDF_molecule
 
 # TODO: remove these shims when RDKit
 # has a release supporting NumPy 2
-if NumpyVersion(np.__version__) < "2.0.0":
-    Chem = pytest.importorskip('rdkit.Chem')
-    AllChem = pytest.importorskip('rdkit.Chem.AllChem')
-else:
-    Chem = pytest.importorskip("RDKit_does_not_support_NumPy_2")
-    AllChem = pytest.importorskip("RDKit_does_not_support_NumPy_2")
+Chem = pytest.importorskip('rdkit.Chem')
+AllChem = pytest.importorskip('rdkit.Chem.AllChem')
+
 
 class RDKitParserBase(ParserBase):
     parser = mda.converters.RDKitParser.RDKitParser
     expected_attrs = ['ids', 'names', 'elements', 'masses', 'aromaticities',
-                      'resids', 'resnums', 'chiralities',
-                      'segids',
-                      'bonds',
-                     ]
-    
+                      'resids', 'resnums', 'chiralities', 'segids', 'bonds',
+                      ]
+
     expected_n_atoms = 0
     expected_n_residues = 1
     expected_n_segments = 1
     expected_n_bonds = 0
+
+    @pytest.fixture()
+    def top(self, filename):
+        with self.parser(filename) as p:
+            yield p.parse()
 
     def test_creates_universe(self, filename):
         u = mda.Universe(filename, format='RDKIT')
@@ -60,11 +59,18 @@ class RDKitParserBase(ParserBase):
     def test_bonds_total_counts(self, top):
         assert len(top.bonds.values) == self.expected_n_bonds
 
+    def test_guessed_attributes(self, filename):
+        u = mda.Universe(filename, format='RDKIT')
+        u_guessed_attrs = [a.attrname for a in u._topology.guessed_attributes]
+        for attr in self.guessed_attrs:
+            assert hasattr(u.atoms, attr)
+            assert attr in u_guessed_attrs
+
 
 class TestRDKitParserMOL2(RDKitParserBase):
     ref_filename = mol2_molecule
 
-    expected_attrs = RDKitParserBase.expected_attrs + ['charges']
+    expected_attrs = RDKitParserBase.expected_attrs + ['charges', 'types']
 
     expected_n_atoms = 49
     expected_n_residues = 1
@@ -142,6 +148,10 @@ class TestRDKitParserMOL2(RDKitParserBase):
             atom.GetIsAromatic() for atom in filename.GetAtoms()])
         assert_equal(expected, top.aromaticities.values)
 
+    def test_guessed_types(self, filename):
+        u = mda.Universe(filename, format='RDKIT')
+        assert_equal(u.atoms.types[:7], ['N.am', 'S.o2',
+                     'N.am', 'N.am', 'O.2', 'O.2', 'C.3'])
 
 class TestRDKitParserPDB(RDKitParserBase):
     ref_filename = PDB_helix
@@ -149,7 +159,6 @@ class TestRDKitParserPDB(RDKitParserBase):
     expected_attrs = RDKitParserBase.expected_attrs + [
         'resnames', 'altLocs', 'chainIDs', 'occupancies', 'icodes',
         'tempfactors']
-    guessed_attrs = ['types']
     
     expected_n_atoms = 137
     expected_n_residues = 13
@@ -169,11 +178,13 @@ class TestRDKitParserPDB(RDKitParserBase):
         mh = Chem.AddHs(mol, addResidueInfo=True)
         mda.Universe(mh)
     
+    def test_guessed_types(self, filename):
+        u = mda.Universe(filename, format='RDKIT')
+        assert_equal(u.atoms.types[:7], ['N', 'H', 'C', 'H', 'C', 'H', 'H'])
+
 
 class TestRDKitParserSMILES(RDKitParserBase):
     ref_filename = "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"
-
-    guessed_attrs = ['types']
 
     expected_n_atoms = 24
     expected_n_residues = 1
@@ -190,8 +201,6 @@ class TestRDKitParserSMILES(RDKitParserBase):
 class TestRDKitParserSDF(RDKitParserBase):
     ref_filename = SDF_molecule
 
-    guessed_attrs = ['types']
-
     expected_n_atoms = 49
     expected_n_residues = 1
     expected_n_segments = 1
@@ -204,3 +213,7 @@ class TestRDKitParserSDF(RDKitParserBase):
     def test_bond_orders(self, top, filename):
         expected = [bond.GetBondTypeAsDouble() for bond in filename.GetBonds()]
         assert top.bonds.order == expected
+
+    def test_guessed_types(self, filename):
+        u = mda.Universe(filename, format='RDKIT')
+        assert_equal(u.atoms.types[:7], ['CA', 'C', 'C', 'C', 'C', 'C', 'O'])

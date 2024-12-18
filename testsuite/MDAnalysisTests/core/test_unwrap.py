@@ -5,7 +5,7 @@
 # Copyright (c) 2006-2017 The MDAnalysis Development Team and contributors
 # (see the file AUTHORS for the full list of names)
 #
-# Released under the GNU Public Licence, v2 or any higher version
+# Released under the Lesser GNU Public Licence, v2.1 or any higher version
 #
 # Please cite your use of MDAnalysis in published work:
 #
@@ -21,6 +21,7 @@
 # J. Comput. Chem. 32 (2011), 2319--2327, doi:10.1002/jcc.21787
 #
 import numpy as np
+import re
 from numpy.testing import (assert_raises, assert_almost_equal,
                            assert_array_equal)
 import pytest
@@ -336,7 +337,13 @@ class TestUnwrap(object):
             group = group.segments
         # store original positions:
         orig_pos = group.atoms.positions
-        with pytest.raises(NoDataError):
+        error_message = (
+            f"{group.__class__.__name__}.unwrap() not available; this AtomGroup lacks defined bonds. "
+            "To resolve this, you can either:\n"
+            "1. Guess the bonds at universe creation using `guess_bonds = True`, or\n"
+            "2. Create a universe using a topology format where bonds are pre-defined."
+        )
+        with pytest.raises(NoDataError, match=re.escape(error_message)):
             group.unwrap(compound=compound, reference=reference, inplace=True)
         # make sure atom positions are unchanged:
         assert_array_equal(group.atoms.positions, orig_pos)

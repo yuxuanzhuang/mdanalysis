@@ -5,7 +5,7 @@
 # Copyright (c) 2006-2017 The MDAnalysis Development Team and contributors
 # (see the file AUTHORS for the full list of names)
 #
-# Released under the GNU Public Licence, v2 or any higher version
+# Released under the Lesser GNU Public Licence, v2.1 or any higher version
 #
 # Please cite your use of MDAnalysis in published work:
 #
@@ -30,7 +30,6 @@ from io import StringIO
 import warnings
 
 import numpy as np
-from numpy.lib import NumpyVersion
 from numpy.testing import (
     assert_allclose,
     assert_almost_equal,
@@ -48,7 +47,8 @@ from MDAnalysisTests.datafiles import (
     GRO, TRR,
     two_water_gro, two_water_gro_nonames,
     TRZ, TRZ_psf,
-    PDB, MMTF,
+    PDB, MMTF, CONECT,
+    PDB_conect
 )
 
 import MDAnalysis as mda
@@ -225,10 +225,7 @@ class TestUniverseCreation(object):
 
 class TestUniverseFromSmiles(object):
     def setup_class(self):
-        if NumpyVersion(np.__version__) < "2.0.0":
-            pytest.importorskip("rdkit.Chem")
-        else:
-            pytest.importorskip("RDKit_does_not_support_NumPy_2")
+        pytest.importorskip("rdkit.Chem")
 
     def test_default(self):
         smi = "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"
@@ -243,7 +240,7 @@ class TestUniverseFromSmiles(object):
 
     def test_no_Hs(self):
         smi = "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"
-        u = mda.Universe.from_smiles(smi, addHs=False, 
+        u = mda.Universe.from_smiles(smi, addHs=False,
             generate_coordinates=False, format='RDKIT')
         assert u.atoms.n_atoms == 14
         assert len(u.bonds.indices) == 15
@@ -265,7 +262,7 @@ class TestUniverseFromSmiles(object):
     def test_rdkit_kwargs(self):
         # test for bad kwarg:
         # Unfortunately, exceptions from Boost cannot be passed to python,
-        # we cannot `from Boost.Python import ArgumentError` and use it with 
+        # we cannot `from Boost.Python import ArgumentError` and use it with
         # pytest.raises(ArgumentError), so "this is the way"
         try:
             u = mda.Universe.from_smiles("CCO", rdkit_kwargs=dict(abc=42))
@@ -278,27 +275,28 @@ class TestUniverseFromSmiles(object):
         u1 = mda.Universe.from_smiles("C", rdkit_kwargs=dict(randomSeed=42))
         u2 = mda.Universe.from_smiles("C", rdkit_kwargs=dict(randomSeed=51))
         with pytest.raises(AssertionError) as e:
-            assert_equal(u1.trajectory.coordinate_array, 
+            assert_equal(u1.trajectory.coordinate_array,
                          u2.trajectory.coordinate_array)
             assert "Mismatched elements: 15 / 15 (100%)" in str(e.value)
 
 
     def test_coordinates(self):
+        # We manually create the molecule to compare coordinates
+        # coordinate generation is pseudo random across different machines
+        # even with the same seed, so we create a molecule to compare
+        # coordinates against. See PR #4640
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+        mol = Chem.MolFromSmiles('C', sanitize=True)
+        mol = Chem.AddHs(mol)
+        AllChem.EmbedMultipleConfs(mol, numConfs=2, randomSeed=42)
+        expected = [c.GetPositions() for c in mol.GetConformers()]
+
+        # now the mda way
         u = mda.Universe.from_smiles("C", numConfs=2, 
                                      rdkit_kwargs=dict(randomSeed=42))
         assert u.trajectory.n_frames == 2
-        expected = np.array([
-            [[-0.02209686,  0.00321505,  0.01651974],
-            [-0.6690088 ,  0.8893599 , -0.1009085 ],
-            [-0.37778795, -0.8577519 , -0.58829606],
-            [ 0.09642092, -0.3151253 ,  1.0637809 ],
-            [ 0.97247267,  0.28030226, -0.3910961 ]],
-            [[-0.0077073 ,  0.00435363,  0.01834692],
-            [-0.61228824, -0.83705765, -0.38619974],
-            [-0.41925883,  0.9689095 , -0.3415968 ],
-            [ 0.03148226, -0.03256683,  1.1267245 ],
-            [ 1.0077721 , -0.10363862, -0.41727486]]], dtype=np.float32)
-        assert_almost_equal(u.trajectory.coordinate_array, expected)
+        assert_allclose(u.trajectory.coordinate_array, expected, rtol=1e-7)
 
 
 class TestUniverse(object):
@@ -388,6 +386,41 @@ class TestTransformations(object):
         ref = translate([10,10,10])(uref.trajectory.ts)
         assert_almost_equal(u.trajectory.ts.positions, ref, decimal=6)
 
+
+class TestGuessTopologyAttrs(object):
+    def test_automatic_type_and_mass_guessing(self):
+        u = mda.Universe(PDB_small)
+        assert_equal(len(u.atoms.masses), 3341)
+        assert_equal(len(u.atoms.types), 3341)
+
+    def test_no_type_and_mass_guessing(self):
+        u = mda.Universe(PDB_small, to_guess=())
+        assert not hasattr(u.atoms, 'masses')
+        assert not hasattr(u.atoms, 'types')
+
+    def test_invalid_context(self):
+        u = mda.Universe(PDB_small)
+        with pytest.raises(KeyError):
+            u.guess_TopologyAttrs(context='trash', to_guess=['masses'])
+
+    def test_invalid_attributes(self):
+        u = mda.Universe(PDB_small)
+        with pytest.raises(ValueError):
+            u.guess_TopologyAttrs(to_guess=['trash'])
+
+    def test_guess_masses_before_types(self):
+        u = mda.Universe(PDB_small, to_guess=('masses', 'types'))
+        assert_equal(len(u.atoms.masses), 3341)
+        assert_equal(len(u.atoms.types), 3341)
+
+    def test_guessing_read_attributes(self):
+        u = mda.Universe(PSF)
+        old_types = u.atoms.types
+        u.guess_TopologyAttrs(force_guess=['types'])
+        with pytest.raises(AssertionError):
+            assert_equal(old_types, u.atoms.types)
+
+
 class TestGuessMasses(object):
     """Tests the Mass Guesser in topology.guessers
     """
@@ -436,7 +469,7 @@ class TestGuessBonds(object):
     def test_universe_guess_bonds_with_vdwradii(self, vdw):
         """Unknown atom types, but with vdw radii here to save the day"""
         u = mda.Universe(two_water_gro_nonames, guess_bonds=True,
-                                vdwradii=vdw)
+                         vdwradii=vdw)
         self._check_universe(u)
         assert u.kwargs['guess_bonds']
         assert_equal(vdw, u.kwargs['vdwradii'])
@@ -453,7 +486,7 @@ class TestGuessBonds(object):
         are being passed correctly.
         """
         u = mda.Universe(two_water_gro, guess_bonds=True)
-        
+
         self._check_universe(u)
         assert u.kwargs["guess_bonds"]
         assert u.kwargs["fudge_factor"]
@@ -518,6 +551,17 @@ class TestGuessBonds(object):
         ag.guess_bonds()
 
         self._check_atomgroup(ag, u)
+
+    def guess_bonds_with_to_guess(self):
+        u = mda.Universe(two_water_gro)
+        has_bonds = hasattr(u.atoms, 'bonds')
+        u.guess_TopologyAttrs(to_guess=['bonds'])
+        assert not has_bonds
+        assert u.atoms.bonds
+
+    def test_guess_read_bonds(self):
+        u = mda.Universe(CONECT)
+        assert len(u.bonds) == 72
 
 
 class TestInMemoryUniverse(object):
@@ -750,9 +794,13 @@ class TestAddTopologyAttr(object):
             ('impropers', [(1, 2, 3)]),
         )
     )
-    def add_connection_error(self, universe, attr, values):
+    def test_add_connection_error(self, universe, attr, values):
         with pytest.raises(ValueError):
             universe.add_TopologyAttr(attr, values)
+
+    def test_add_attr_length_error(self, universe):
+        with pytest.raises(ValueError):
+            universe.add_TopologyAttr('masses', np.array([1, 2, 3], dtype=np.float64))
 
 
 class TestDelTopologyAttr(object):
@@ -830,7 +878,7 @@ class TestDelTopologyAttr(object):
                 return "potoooooooo"
 
             transplants["Universe"].append(("potatoes", potatoes))
-        
+
         universe.add_TopologyAttr("tubers")
         assert universe.potatoes() == "potoooooooo"
         universe.del_TopologyAttr("tubers")
@@ -1200,6 +1248,16 @@ class TestDeleteTopologyObjects(object):
         universe.delete_bonds([universe.atoms[[2, 3]]])
         assert len(universe.atoms.fragments) == n_fragments + 1
 
+    @pytest.mark.parametrize("filename, n_bonds", [
+        (CONECT, 72),
+        (PDB_conect, 8)
+    ])
+    def test_delete_all_bonds(self, filename, n_bonds):
+        u = mda.Universe(filename)
+        assert len(u.bonds) == n_bonds
+        u.delete_bonds(u.bonds)
+        assert len(u.bonds) == 0
+
     @pytest.mark.parametrize(
         'attr,values', existing_atom_indices
     )
@@ -1378,6 +1436,6 @@ class TestOnlyTopology:
 
         with pytest.warns(UserWarning,
                           match="No coordinate reader found for"):
-            u = mda.Universe(t)
+            u = mda.Universe(t, to_guess=())
 
         assert len(u.atoms) == 10

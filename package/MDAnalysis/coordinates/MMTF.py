@@ -5,7 +5,7 @@
 # Copyright (c) 2006-2017 The MDAnalysis Development Team and contributors
 # (see the file AUTHORS for the full list of names)
 #
-# Released under the GNU Public Licence, v2 or any higher version
+# Released under the Lesser GNU Public Licence, v2.1 or any higher version
 #
 # Please cite your use of MDAnalysis in published work:
 #
@@ -36,15 +36,16 @@ Classes
 
 .. autoclass:: MMTFReader
    :members:
-.. autofunction:: fetch_mmtf
 
 .. _MMTF: https://mmtf.rcsb.org/
 
 """
+import warnings
 import mmtf
 
 from . import base
 from ..core.universe import Universe
+from ..lib.util import cached, store_init_arguments
 from ..due import due, Doi
 
 
@@ -56,8 +57,26 @@ def _parse_mmtf(fn):
 
 
 class MMTFReader(base.SingleFrameReaderBase):
-    """Coordinate reader for the Macromolecular Transmission Format format (MMTF_)."""
+    """Coordinate reader for the Macromolecular Transmission Format format (MMTF_).
+
+
+    .. deprecated:: 2.8.0
+       The MMTF format is no longer supported / serviced by the
+       Protein Data Bank. The Reader will be removed in version 3.0.
+       Users are encouraged to instead use alternative PDB formats.
+    """
     format = 'MMTF'
+
+    @store_init_arguments
+    def __init__(self, filename, convert_units=True, n_atoms=None, **kwargs):
+        wmsg = ("The MMTF Reader is deprecated and will be removed in "
+                "MDAnalysis version 3.0.0")
+        warnings.warn(wmsg, DeprecationWarning)
+
+        super(MMTFReader, self).__init__(
+            filename, convert_units, n_atoms,
+            **kwargs
+        )
 
     @staticmethod
     def _format_hint(thing):
@@ -90,28 +109,3 @@ class MMTFReader(base.SingleFrameReaderBase):
             ts.dimensions = top.unit_cell
 
         return ts
-
-
-def fetch_mmtf(pdb_id):
-    """Create a Universe from the RCSB Protein Data Bank using mmtf format
-
-    Parameters
-    ----------
-    pdb_id : string
-        PDB code of the desired data, eg '4UCP'
-
-
-    Returns
-    -------
-    Universe
-        MDAnalysis Universe of the corresponding PDB system
-
-
-    See Also
-    --------
-    mmtf.fetch : Function for fetching raw mmtf data
-
-
-    .. versionadded:: 0.16.0
-    """
-    return Universe(mmtf.fetch(pdb_id))

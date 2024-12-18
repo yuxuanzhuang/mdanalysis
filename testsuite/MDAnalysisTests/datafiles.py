@@ -5,7 +5,7 @@
 # Copyright (c) 2006-2017 The MDAnalysis Development Team and contributors
 # (see the file AUTHORS for the full list of names)
 #
-# Released under the GNU Public Licence, v2 or any higher version
+# Released under the Lesser GNU Public Licence, v2.1 or any higher version
 #
 # Please cite your use of MDAnalysis in published work:
 #
@@ -77,6 +77,8 @@ __all__ = [
     "GRO_sameresid_diffresname",  # Case where two residues share the same resid
     "PDB_xvf", "TPR_xvf", "TRR_xvf",  # Gromacs coords/veloc/forces (cobrotoxin, OPLS-AA, Gromacs 4.5.5 tpr)
     "H5MD_xvf",  # TPR_xvf + TRR_xvf converted to h5md format
+    "H5MD_energy",  # H5MD trajectory with observables/atoms/energy
+    "H5MD_malformed",  # H5MD trajectory with malformed observable group
     "XVG_BZ2",  # Compressed xvg file about cobrotoxin
     "PDB_xlserial",
     "TPR400", "TPR402", "TPR403", "TPR404", "TPR405", "TPR406", "TPR407",
@@ -373,6 +375,8 @@ PDB_xvf = (_data_ref / 'cobrotoxin.pdb').as_posix()
 TPR_xvf = (_data_ref / 'cobrotoxin.tpr').as_posix()
 TRR_xvf = (_data_ref / 'cobrotoxin.trr').as_posix()
 H5MD_xvf = (_data_ref / 'cobrotoxin.h5md').as_posix()
+H5MD_energy = (_data_ref / 'cu.h5md').as_posix()
+H5MD_malformed = (_data_ref / 'cu_malformed.h5md').as_posix()
 XVG_BZ2 = (_data_ref / 'cobrotoxin_protein_forces.xvg.bz2').as_posix()
 
 XPDB_small = (_data_ref / '5digitResid.pdb').as_posix()
