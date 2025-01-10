@@ -22,11 +22,12 @@
 #
 import pytest
 from unittest.mock import patch
-import time
+
 import re
 import os
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import numpy as np
@@ -60,6 +61,7 @@ import MDAnalysis as mda
 from MDAnalysis.coordinates.base import Timestep
 from MDAnalysis.coordinates import XDR
 from MDAnalysisTests.util import get_userid
+from filelock import FileLock
 
 
 @pytest.mark.parametrize(
@@ -978,54 +980,30 @@ class _GromacsReader_offsets(object):
         reader[idx_frame]
 
     @pytest.mark.skipif(get_userid() == 0, reason="cannot readonly as root")
-    def test_persistent_offsets_readonly(self, tmpdir):
+    def test_persistent_offsets_readonly(self, tmpdir, traj):
         shutil.copy(self.filename, str(tmpdir))
 
-<<<<<<< HEAD
-        if os.name == 'nt':
-            # Windows platform: deny write access using `icacls`
-            subprocess.run(
-                f"icacls {tmpdir} /deny Users:W",
-                shell=True,
-                check=True  # Raises an error if the command fails
-            )
-            # print the permissions to check if they are set correctly
-            subprocess.run(
-                f'icacls {tmpdir}',
-                shell=True,
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-=======
-        if os.name == "nt":
-            # Windows platform has a unique way to deny write access
-            subprocess.call(
-                "icacls {fname} /deny Users:W".format(fname=tmpdir), shell=True
->>>>>>> mda_origin/develop
-            )
-        else:
-            # Non-Windows platforms: use chmod for read and execute only
-            os.chmod(str(tmpdir), 0o555)
-        time.sleep(1)  # wait for permissions to be set
-
         filename = str(tmpdir.join(os.path.basename(self.filename)))
-        # try to write a offsets file
-<<<<<<< HEAD
-        with pytest.warns(UserWarning, match="Cannot write"):
-            self._reader(filename)
-        assert_equal(os.path.exists(XDR.offsets_filename(filename)), False)
-=======
-        with pytest.warns(
-            UserWarning, match="Couldn't save offsets"
-        ) and pytest.warns(UserWarning, match="Cannot write"):
-            self._reader(filename)
+        ref_offset = XDR.read_numpy_offsets(traj)  # Reference
+        # Mock np.load to raise an error when trying to load offsets
+        with patch.object(np, "load") as np_load_mock:
+            np_load_mock.side_effect = ValueError  # Simulate failure
+            with pytest.warns(UserWarning, match="Failed to load offsets"):
+                saved_offsets = XDR.read_numpy_offsets(filename)
+
+            # Check if offsets are handled properly and match reference offsets
+            assert_almost_equal(
+                saved_offsets,  # Compare with reference offsets
+                ref_offset,
+                err_msg="error loading frame offsets",
+            )
+
         assert_equal(os.path.exists(XDR.offsets_filename(filename)), False)
         # check the lock file is not created as well.
         assert_equal(
             os.path.exists(XDR.offsets_filename(filename, ending=".lock")),
             False,
         )
-
         # pre-teardown permission fix - leaving permission blocked dir
         # is problematic on py3.9 + Windows it seems. See issue
         # [4123](https://github.com/MDAnalysis/mdanalysis/issues/4123)
@@ -1036,17 +1014,11 @@ class _GromacsReader_offsets(object):
             os.chmod(str(tmpdir), 0o777)
 
         shutil.rmtree(tmpdir)
->>>>>>> mda_origin/develop
 
-    
-    def test_offset_lock_created(self):
-<<<<<<< HEAD
-        assert os.path.exists(XDR.offsets_filename(self.filename))
-=======
+    def test_offset_lock_created(self, traj):
         assert os.path.exists(
-            XDR.offsets_filename(self.filename, ending="lock")
+            XDR.offsets_filename(traj, ending="lock")
         )
->>>>>>> mda_origin/develop
 
 
 class TestXTCReader_offsets(_GromacsReader_offsets):

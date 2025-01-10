@@ -36,6 +36,7 @@ Enhancements
 
 
 Changes
+ * Changed `fasteners` dependency to  `filelock` (Issue #4797, PR #4800)
  * Codebase is now formatted with black (version `24`) (PR #4886)
 
 Deprecations
