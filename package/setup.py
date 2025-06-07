@@ -83,7 +83,7 @@ try:
             )
         )
         cython_found = False
-    cython_linetrace = bool(os.environ.get("CYTHON_TRACE_NOGIL", False))
+    cython_linetrace = False
 except ImportError:
     cython_found = False
     if not is_release:

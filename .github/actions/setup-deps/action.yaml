@@ -25,8 +25,6 @@ inputs:
     default: 'filelock'
   griddataformats:
     default: 'griddataformats'
-  gsd:
-    default: 'gsd>3.0.0'
   hypothesis:
     default: 'hypothesis'
   matplotlib:
@@ -135,7 +133,6 @@ runs:
           ${{ inputs.clustalw }}
           ${{ inputs.dask }}
           ${{ inputs.distopia }}
-          ${{ inputs.gsd }}
           ${{ inputs.h5py }}
           ${{ inputs.hole2 }}
           ${{ inputs.joblib }}
@@ -175,7 +172,6 @@ runs:
           ${{ inputs.pytest-xdist }}
           ${{ inputs.trove-classifiers }}
         PIP_OPT_DEPS: |
-          ${{ inputs.duecredit }}
           ${{ inputs.parmed }}
           ${{ inputs.pyedr }}
       run: |

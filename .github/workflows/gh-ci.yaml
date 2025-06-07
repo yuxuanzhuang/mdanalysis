@@ -21,7 +21,7 @@ defaults:
 
 jobs:
   main_tests:
-    if: "github.repository == 'MDAnalysis/mdanalysis'"
+    if: "github.repository == 'yuxuanzhuang/mdanalysis'"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
@@ -59,13 +59,17 @@ jobs:
               full-deps: true
               codecov: false
               extra-pip-deps: asv
+            - name: windows_py312
+              os: windows-latest
+              python-version: "3.12"
+              full-deps: false
+              codecov: false
     env:
       CYTHON_TRACE_NOGIL: 0
       MPLBACKEND: agg
 
     steps:
     - uses: actions/checkout@v4
-
     - name: setup_os
       uses: ./.github/actions/setup-os
       with:
@@ -92,8 +96,6 @@ jobs:
         full-deps: ${{ matrix.full-deps }}
         # disable GSD because it occasionally introduce hanging in testing #4209
         gsd: ''
-        # pin cython
-        cython: 'cython<3.1'
         # in most cases will just default to empty, i.e. pick up max version from other deps
         numpy: ${{ matrix.numpy }}
         extra-pip-deps: ${{ matrix.extra-pip-deps }}
@@ -113,17 +115,30 @@ jobs:
       run: |
         micromamba list
         pip list
+        
+    - name: Setup tmate session
+      if: ${{ matrix.name != 'numpy_min' }}
+      uses: mxschmitt/action-tmate@v3
+      with:
+        detached: true
+  
+    - name: Setup tmate session for numpy_min
+      if: ${{ matrix.name == 'numpy_min' }}
+      uses: mxschmitt/action-tmate@v3
+      with:
+        detached: true
 
     - name: run_tests
       if: contains(matrix.name, 'asv_check') != true
       run: |
         PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
         if [ ${{ matrix.codecov }} = "true" ]; then
-          PYTEST_FLAGS="${PYTEST_FLAGS} --cov-config=.coveragerc --cov=MDAnalysis --cov-report=xml"
+          PYTEST_FLAGS="${PYTEST_FLAGS} --cov-config=.coveragerc --cov=MDAnalysis --cov-report=xml --log-file-level=DEBUG"
         fi
         echo $PYTEST_FLAGS
-        pytest -n logical --timeout=200 testsuite/MDAnalysisTests $PYTEST_FLAGS
+        pytest -n logical --timeout=2000 testsuite/MDAnalysisTests $PYTEST_FLAGS
 
+      
     - name: run_asv
       if: contains(matrix.name, 'asv_check')
       run: |

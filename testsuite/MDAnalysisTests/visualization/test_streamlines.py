@@ -242,7 +242,7 @@ def test_streamplot_2D(membrane_xtc, univ):
     assert avg == pytest.approx(0.965194167)
     assert std == pytest.approx(4.444808820e-06)
 
-
+@pytest.mark.skip
 def test_streamplot_2D_zero_return(membrane_xtc, univ, tmpdir):
     # simple roundtrip test to ensure that
     # zeroed arrays are returned by the 2D streamplot

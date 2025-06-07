@@ -1590,7 +1590,6 @@ def test_mass_sel(u_fake_masses, selstr, n_atoms, selkwargs):
     ag = u_fake_masses.select_atoms(selstr, **selkwargs)
     assert len(ag) == n_atoms
 
-
 def test_mass_sel_warning(u_fake_masses):
     warn_msg = (
         r"Using float equality .* is not recommended .* "

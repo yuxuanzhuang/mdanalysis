@@ -36,6 +36,8 @@ MDAnalysis.lib.formats.libmdaxdr: Low level xdr format reader
 
 import errno
 import numpy as np
+import os
+
 from os.path import getctime, getsize, isfile, split, join
 import warnings
 from filelock import FileLock
