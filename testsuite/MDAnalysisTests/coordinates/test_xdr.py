@@ -25,6 +25,7 @@ from unittest.mock import patch
 
 import re
 import os
+import sys
 import shutil
 import subprocess
 import time
@@ -123,6 +124,11 @@ class _GromacsReader(object):
     def universe(self):
         return mda.Universe(GRO, self.filename, convert_units=True)
 
+    # fixture for testing #4905
+    @pytest.fixture(scope="class")
+    def universe_with_dt_set(self):
+        return mda.Universe(GRO, self.filename, convert_units=True, dt=2500)
+
     def test_rewind_xdrtrj(self, universe):
         universe.trajectory.rewind()
         assert_equal(universe.coord.frame, 0, "rewinding to frame 1")
@@ -198,6 +204,14 @@ class _GromacsReader(object):
             universe.trajectory.dt, 100.0, 4, err_msg="wrong timestep dt"
         )
 
+    def test_dt_when_dt_set(self, universe_with_dt_set):
+        assert_almost_equal(
+            universe_with_dt_set.trajectory.dt,
+            2500.0,
+            4,
+            err_msg="wrong timestep dt when dt set",
+        )
+
     def test_totaltime(self, universe):
         # test_totaltime(): need to reduce precision because dt is only precise
         # to ~4 decimals and accumulating the inaccuracy leads to even lower
@@ -207,6 +221,17 @@ class _GromacsReader(object):
             900.0,
             3,
             err_msg="wrong total length of trajectory",
+        )
+
+    def test_totaltime_when_dt_set(self, universe_with_dt_set):
+        # test_totaltime(): need to reduce precision because dt is only precise
+        # to ~4 decimals and accumulating the inaccuracy leads to even lower
+        # precision in the totaltime (consequence of fixing Issue 64)
+        assert_almost_equal(
+            universe_with_dt_set.trajectory.totaltime,
+            22500.0,
+            3,
+            err_msg="wrong total length of trajectory when dt set",
         )
 
     def test_frame(self, universe):
@@ -219,6 +244,15 @@ class _GromacsReader(object):
             universe.trajectory.time, 400.0, 3, err_msg="wrong time of frame"
         )
 
+    def test_time_when_dt_set(self, universe_with_dt_set):
+        universe_with_dt_set.trajectory[4]
+        assert_almost_equal(
+            universe_with_dt_set.trajectory.time,
+            10000.0,
+            3,
+            err_msg="wrong time of frame when dt set",
+        )
+
     def test_get_Writer(self, universe, tmpdir):
         ext = os.path.splitext(self.filename)[1]
         outfile = str(tmpdir.join("xdr-reader-test" + ext))
@@ -226,11 +260,12 @@ class _GromacsReader(object):
             assert_equal(universe.trajectory.format, W.format)
             assert_equal(universe.atoms.n_atoms, W.n_atoms)
 
-    def test_Writer(self, tmpdir):
+    @pytest.mark.parametrize("dt", [None, 1000])
+    def test_Writer(self, tmpdir, dt):
         universe = mda.Universe(GRO, self.filename, convert_units=True)
         ext = os.path.splitext(self.filename)[1]
         outfile = str(tmpdir.join("/xdr-reader-test" + ext))
-        with universe.trajectory.Writer(outfile) as W:
+        with universe.trajectory.Writer(outfile, dt=dt) as W:
             W.write(universe.atoms)
             universe.trajectory.next()
             W.write(universe.atoms)
@@ -243,6 +278,17 @@ class _GromacsReader(object):
         assert_almost_equal(
             u.atoms.positions, universe.atoms.positions, self.prec
         )
+        if dt:
+            # test total trajectory length
+            assert_almost_equal(
+                u.trajectory.totaltime,
+                dt,
+                3,
+                err_msg=(
+                    "wrong total length of trajectory upon setting dt "
+                    "explicitly"
+                ),
+            )
 
     def test_EOFraisesStopIteration(self, universe):
         def go_beyond_EOF():
@@ -520,9 +566,7 @@ class TestTRRWriter(_GromacsWriter):
 
     def test_data_preservation(self, universe, Writer, outfile):
 
-        with Writer(
-            outfile, universe.atoms.n_atoms, dt=universe.trajectory.dt
-        ) as W:
+        with Writer(outfile, universe.atoms.n_atoms) as W:
             for ts in universe.trajectory:
                 W.write(universe)
 
@@ -979,16 +1023,19 @@ class _GromacsReader_offsets(object):
             reader = self._reader(traj)
         reader[idx_frame]
 
-    def test_persistent_offsets_readonly(self, tmpdir, traj):
+    def test_persistent_offsets_readonly(self, tmpdir, trajectory):
         shutil.copy(self.filename, str(tmpdir))
 
         filename = str(tmpdir.join(os.path.basename(self.filename)))
-        ref_offset = XDR.read_numpy_offsets(traj)  # Reference
-        # Mock np.load to raise an error when trying to load offsets
-        with patch.object(np, "load") as np_load_mock:
-            np_load_mock.side_effect = ValueError  # Simulate failure
-            with pytest.warns(UserWarning, match="Failed to load offsets"):
-                saved_offsets = XDR.read_numpy_offsets(filename)
+        print("filename", filename)
+        ref_offset = trajectory._xdr.offsets
+        # Mock filelock acquire to raise an error
+        with patch.object(
+            FileLock, "acquire", side_effect=PermissionError
+        ):  # Simulate failure
+            with pytest.warns(UserWarning, match="Cannot write lock"):
+                reader = self._reader(filename)
+                saved_offsets = reader._xdr.offsets
 
             # Check if offsets are handled properly and match reference offsets
             assert_almost_equal(
@@ -1003,12 +1050,13 @@ class _GromacsReader_offsets(object):
             os.path.exists(XDR.offsets_filename(filename, ending=".lock")),
             False,
         )
-        shutil.rmtree(tmpdir)
 
+    @pytest.mark.skipif(
+        sys.platform.startswith("win"),
+        reason="The lock file only exists when it's locked in windows",
+    )
     def test_offset_lock_created(self, traj):
-        assert os.path.exists(
-            XDR.offsets_filename(traj, ending="lock")
-        )
+        assert os.path.exists(XDR.offsets_filename(traj, ending="lock"))
 
 
 class TestXTCReader_offsets(_GromacsReader_offsets):
