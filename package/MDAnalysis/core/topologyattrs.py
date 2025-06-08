@@ -3373,7 +3373,7 @@ class Bonds(_Connection):
         """
         return self.universe._fragdict[self.ix].ix
 
-    @cached('fragindices', universe_validation='bonds')
+    @cached('fragindices', universe_validation=True)
     def fragindices(self):
         r"""The
         :class:`fragment indices<MDAnalysis.core.topologyattrs.Bonds.fragindex>`
@@ -3407,7 +3407,7 @@ class Bonds(_Connection):
         """
         return self.universe._fragdict[self.ix].fragment
 
-    @cached('fragments', universe_validation='bonds')
+    @cached('fragments', universe_validation=True)
     def fragments(self):
         """Read-only :class:`tuple` of
         :class:`fragments<MDAnalysis.core.topologyattrs.Bonds.fragment>`.

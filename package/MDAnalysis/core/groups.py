@@ -2160,7 +2160,7 @@ class GroupBase(_MutableBase):
         #  unidimensionally whereas the general multi-compound case involves
         #  more indexing and is therefore slower. Leaving separate for now.
         if comp == "group":
-            spread = positions.ptp(axis=0).astype(np.float32)
+            spread = np.ptp(positions, axis=0).astype(np.float32)
             if unwrap_check_matrix is None:
                 spread /= self.dimensions[:3]
             else:
@@ -2218,7 +2218,7 @@ class GroupBase(_MutableBase):
                 # at the end; for the atoms, one per AtomGroup to unwrap; and
                 # and one for the masses, if doing COM.
                 pos = positions[atom_mask]
-                spreads = pos.ptp(axis=1).astype(np.float32)
+                spreads = np.ptp(pos, axis=1).astype(np.float32)
                 if unwrap_check_matrix is None:
                     spreads /= self.dimensions[:3]
                 else:

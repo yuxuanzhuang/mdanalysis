@@ -1622,6 +1622,13 @@ def conv_float(s):
         return s
 
 
+# A dummy, empty, cheaply-hashable object class to use with weakref caching.
+# (class object doesn't allow weakrefs to its instances, but user-defined
+#  classes do)
+class _CacheKey:
+    pass
+
+
 def cached(key, universe_validation=False):
     """Cache a property within a class.
 
@@ -1677,15 +1684,9 @@ def cached(key, universe_validation=False):
     def cached_lookup(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
-            if universe_validation:
-                if universe_validation is True:
-                    self._check_universe_cache_validity(key)
-                else:
-                    self._check_universe_cache_validity(key,
-                                                        universe_validation)
             try:
                 if universe_validation:  # Universe-level cache validation
-                    u_cache = self.universe._cache.setdefault("_valid", dict())
+                    u_cache = self.universe._cache.setdefault('_valid', dict())
                     # A WeakSet is used so that keys from out-of-scope/deleted
                     # objects don't clutter it.
                     valid_caches = u_cache.setdefault(key, weakref.WeakSet())
@@ -1702,6 +1703,8 @@ def cached(key, universe_validation=False):
                 return self._cache[key]
             except KeyError:
                 self._cache[key] = ret = func(self, *args, **kwargs)
+                if universe_validation:
+                    valid_caches.add(self._cache_key)
                 return ret
 
         return wrapper

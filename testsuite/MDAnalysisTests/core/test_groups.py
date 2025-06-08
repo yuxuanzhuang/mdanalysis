@@ -1685,7 +1685,7 @@ class TestDecorator(object):
                 # deprecation. We need to tell the linter.
                 assert (
                     # pylint: disable-next=unexpected-keyword-arg
-                    self.dummy_funtion(
+                    self.dummy_function(
                         compound=compound, pbc=pbc, unwrap=unwrap
                     )
                     == 0
@@ -1706,7 +1706,7 @@ class TestDecorator(object):
                 self.dummy_function(compound=compound, wrap=wrap, unwrap=unwrap)
         else:
             assert (
-                self.dummy_funtion(compound=compound, wrap=wrap, unwrap=unwrap)
+                self.dummy_function(compound=compound, wrap=wrap, unwrap=unwrap)
                 == 0
             )
 
