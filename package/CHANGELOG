@@ -427,7 +427,6 @@ Fixes
     (Issue #3336)
 
 Enhancements
-<<<<<<< HEAD
   * ARM64 (osx and linux) wheels now uploaded on release (Issue #4054)
   * Add simple atomic distance analysis to `analysis.atomicdistances` with
     new class `AtomicDistances` (Issue #3654)
@@ -451,11 +450,9 @@ Enhancements
   * Add distopia distance calculation library bindings as a selectable backend
     for `calc_bonds` in `MDA.lib.distances`. (Issue #3783, PR #3914)
   * AuxReaders are now pickle-able and copy-able (Issue #1785, PR #3887)
-=======
   * Optimizes AtomGroup.unwrap by pre-screening for large fragments relative to
     the box vectors. Also streamlined com vs cog unwrapping references,
     incidently partly fixing dummy particle unwrapping. (Issue #3168, PR #3169)
->>>>>>> mda_origin/feature-(un)wrap-enhancement
   * Add pickling support for Atom, Residue, Segment, ResidueGroup 
     and SegmentGroup. (PR #3953)
 

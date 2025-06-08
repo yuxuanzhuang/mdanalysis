@@ -230,7 +230,7 @@ def make_whole(atomgroup, reference_atom=None, inplace=True):
         Inplace-modification of atom positions is now optional, and positions
         are returned as a numpy array.
     """
-    cdef intset refpoints, todo, done
+    cdef intset todo, done
     cdef cnp.intp_t i, j, nloops, ref, atom, other, natoms
     cdef cmap[int, int] ix_to_rel
     cdef intmap bonding
@@ -323,7 +323,7 @@ def make_whole(atomgroup, reference_atom=None, inplace=True):
         newpos[ref, i] = oldpos[ref, i]
 
     nloops = 0
-    while <cnp.intp_t> refpoints.size() < natoms and nloops < natoms:
+    while <cnp.intp_t> todo.size() < natoms and nloops < natoms:
         # count iterations to prevent infinite loop here
         nloops += 1
     while not todo.empty():
@@ -350,7 +350,7 @@ def make_whole(atomgroup, reference_atom=None, inplace=True):
             todo.insert(other)
         done.insert(atom)
 
-    if <np.intp_t> done.size() != natoms:
+    if <cnp.intp_t> done.size() != natoms:
         raise ValueError("AtomGroup was not contiguous from bonds, process failed")
     if inplace:
         atomgroup.positions = newpos

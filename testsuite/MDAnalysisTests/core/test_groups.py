@@ -1683,7 +1683,6 @@ class TestDecorator(object):
                 # We call a deprecated argument that does not appear in the
                 # function's signature. This is done on purpose to test the
                 # deprecation. We need to tell the linter.
-<<<<<<< HEAD
                 assert (
                     # pylint: disable-next=unexpected-keyword-arg
                     self.dummy_funtion(
@@ -1691,11 +1690,9 @@ class TestDecorator(object):
                     )
                     == 0
                 )
-=======
                 # pylint: disable-next=unexpected-keyword-arg
                 assert_equal(self.dummy_function(compound=compound, pbc=pbc,
                                                  unwrap=unwrap), 0)
->>>>>>> mda_origin/feature-(un)wrap-enhancement
 
     @pytest.mark.parametrize(
         "compound", ("fragments", "molecules", "residues", "group", "segments")
@@ -1708,15 +1705,10 @@ class TestDecorator(object):
             with pytest.raises(ValueError):
                 self.dummy_function(compound=compound, wrap=wrap, unwrap=unwrap)
         else:
-<<<<<<< HEAD
             assert (
                 self.dummy_funtion(compound=compound, wrap=wrap, unwrap=unwrap)
                 == 0
             )
-=======
-            assert_equal(self.dummy_function(compound=compound, wrap=wrap,
-                                             unwrap=unwrap), 0)
->>>>>>> mda_origin/feature-(un)wrap-enhancement
 
 
 @pytest.fixture()

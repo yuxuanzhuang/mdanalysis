@@ -3407,11 +3407,7 @@ class Bonds(_Connection):
         """
         return self.universe._fragdict[self.ix].fragment
 
-<<<<<<< HEAD
-    @cached("fragments", universe_validation=True)
-=======
     @cached('fragments', universe_validation='bonds')
->>>>>>> mda_origin/feature-(un)wrap-enhancement
     def fragments(self):
         """Read-only :class:`tuple` of
         :class:`fragments<MDAnalysis.core.topologyattrs.Bonds.fragment>`.
