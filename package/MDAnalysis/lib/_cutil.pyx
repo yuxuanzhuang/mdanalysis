@@ -322,16 +322,13 @@ def make_whole(atomgroup, reference_atom=None, inplace=True):
     for i in range(3):
         newpos[ref, i] = oldpos[ref, i]
 
-<<<<<<< HEAD
     nloops = 0
     while <cnp.intp_t> refpoints.size() < natoms and nloops < natoms:
         # count iterations to prevent infinite loop here
         nloops += 1
-=======
     while not todo.empty():
         atom = deref(todo.begin())
         todo.erase(todo.begin())
->>>>>>> mda_origin/feature-(un)wrap-enhancement
 
         for other in bonding[atom]:
             # If other is already a refpoint, leave alone
@@ -353,11 +350,7 @@ def make_whole(atomgroup, reference_atom=None, inplace=True):
             todo.insert(other)
         done.insert(atom)
 
-<<<<<<< HEAD
-    if <cnp.intp_t> refpoints.size() < natoms:
-=======
     if <np.intp_t> done.size() != natoms:
->>>>>>> mda_origin/feature-(un)wrap-enhancement
         raise ValueError("AtomGroup was not contiguous from bonds, process failed")
     if inplace:
         atomgroup.positions = newpos
