@@ -30,7 +30,7 @@ import warnings
 
 import MDAnalysis as mda
 from MDAnalysis.exceptions import NoDataError
-from MDAnalysisTests import make_Universe, no_deprecated_call
+from MDAnalysisTests import make_Universe
 from MDAnalysisTests.datafiles import PSF, DCD, TPR
 from MDAnalysis.core import groups
 
@@ -1661,7 +1661,7 @@ class TestInitGroup(object):
 class TestDecorator(object):
     @groups._pbc_to_wrap
     @groups.check_wrap_and_unwrap
-    def dummy_funtion(cls, compound="group", wrap=True, unwrap=True):
+    def dummy_function(cls, compound="group", wrap=True, unwrap=True):
         return 0
 
     @pytest.mark.parametrize(
@@ -1677,12 +1677,13 @@ class TestDecorator(object):
                 # function's signature. This is done on purpose to test the
                 # deprecation. We need to tell the linter.
                 # pylint: disable-next=unexpected-keyword-arg
-                self.dummy_funtion(compound=compound, pbc=pbc, unwrap=unwrap)
+                self.dummy_function(compound=compound, pbc=pbc, unwrap=unwrap)
         else:
             with pytest.warns(DeprecationWarning):
                 # We call a deprecated argument that does not appear in the
                 # function's signature. This is done on purpose to test the
                 # deprecation. We need to tell the linter.
+<<<<<<< HEAD
                 assert (
                     # pylint: disable-next=unexpected-keyword-arg
                     self.dummy_funtion(
@@ -1690,6 +1691,11 @@ class TestDecorator(object):
                     )
                     == 0
                 )
+=======
+                # pylint: disable-next=unexpected-keyword-arg
+                assert_equal(self.dummy_function(compound=compound, pbc=pbc,
+                                                 unwrap=unwrap), 0)
+>>>>>>> mda_origin/feature-(un)wrap-enhancement
 
     @pytest.mark.parametrize(
         "compound", ("fragments", "molecules", "residues", "group", "segments")
@@ -1700,12 +1706,17 @@ class TestDecorator(object):
 
         if wrap and unwrap:
             with pytest.raises(ValueError):
-                self.dummy_funtion(compound=compound, wrap=wrap, unwrap=unwrap)
+                self.dummy_function(compound=compound, wrap=wrap, unwrap=unwrap)
         else:
+<<<<<<< HEAD
             assert (
                 self.dummy_funtion(compound=compound, wrap=wrap, unwrap=unwrap)
                 == 0
             )
+=======
+            assert_equal(self.dummy_function(compound=compound, wrap=wrap,
+                                             unwrap=unwrap), 0)
+>>>>>>> mda_origin/feature-(un)wrap-enhancement
 
 
 @pytest.fixture()

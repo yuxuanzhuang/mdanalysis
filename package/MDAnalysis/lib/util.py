@@ -1622,23 +1622,29 @@ def conv_float(s):
         return s
 
 
-# A dummy, empty, cheaply-hashable object class to use with weakref caching.
-# (class object doesn't allow weakrefs to its instances, but user-defined
-#  classes do)
-class _CacheKey:
-    pass
-
-
 def cached(key, universe_validation=False):
     """Cache a property within a class.
 
-    Requires the Class to have a cache dict :attr:`_cache` and, with
-    `universe_validation`, a :attr:`universe` with a cache dict :attr:`_cache`.
+    Requires the Class to have a cache dict :attr:`_cache`.
+
+    When ``True`` or a string is passed to `universe_validation`, the Class
+    should inherit from :class:`~MDAnalysis.core.groups.GroupBase` (or at least
+    quack like it regarding :attr:`~MDAnalysis.core.groups.GroupBase.universe`
+    and
+    :meth:`~MDAnalysis.core.groups.GroupBase._check_universe_cache_validity`).
+
+    Parameters
+    ----------
+    key : str
+        The cache dictionary key under which to store/retrieve reslts.
+    universe_validation : str or bool (optional)
+        The key of the validty dictionary under universe. If ``True``, the same
+        string as `key` is used. If ``False``, no unverse validity check is
+        done.
 
     Example
     -------
-    How to add a cache for a variable to a class by using the `@cached`
-    decorator::
+    How to add a cache for a class property using the `@cached` decorator::
 
        class A(object):
            def__init__(self):
@@ -1655,13 +1661,10 @@ def cached(key, universe_validation=False):
            @property
            @cached('keyname', universe_validation=True)
            def othersize(self):
-               # This code gets run only if the lookup
-               # id(self) is not in the validation set under
-               # self.universe._cache['_valid']['keyname']
-               # After this code has been run once, id(self) is added to that
-               # set. The validation set can be centrally invalidated at the
-               # universe level (say, if a topology change invalidates specific
-               # caches).
+               # As the example above, but before the cache lookup a check is
+               # made whether this object's 'keyname' cache is valid under
+               # universe. If that check fails, the object's _cache['keyname']
+               # is first cleared, then re-populated after this code has run.
                return 20.0
 
 
@@ -1674,6 +1677,12 @@ def cached(key, universe_validation=False):
     def cached_lookup(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
+            if universe_validation:
+                if universe_validation is True:
+                    self._check_universe_cache_validity(key)
+                else:
+                    self._check_universe_cache_validity(key,
+                                                        universe_validation)
             try:
                 if universe_validation:  # Universe-level cache validation
                     u_cache = self.universe._cache.setdefault("_valid", dict())
@@ -1693,8 +1702,6 @@ def cached(key, universe_validation=False):
                 return self._cache[key]
             except KeyError:
                 self._cache[key] = ret = func(self, *args, **kwargs)
-                if universe_validation:
-                    valid_caches.add(self._cache_key)
                 return ret
 
         return wrapper

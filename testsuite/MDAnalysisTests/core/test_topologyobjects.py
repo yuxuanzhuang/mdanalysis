@@ -51,7 +51,7 @@ def PSFDCD():
 
 
 class TestTopologyObjects(object):
-    """Test the base TopologyObject funtionality
+    """Test the base TopologyObject functionality
 
     init
     repr

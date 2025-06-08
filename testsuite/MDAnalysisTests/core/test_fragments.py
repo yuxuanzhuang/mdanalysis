@@ -204,6 +204,7 @@ class TestFragments(object):
         assert u.atoms._cache_key in u._cache["_valid"]["fragments"]
         u.add_bonds((fgs[0][-1] + fgs[1][0],))  # should trigger invalidation
         assert "fragments" not in u._cache["_valid"]
+        assert 'bonds' not in u._cache['_valid']
         assert len(fgs) > len(u.atoms.fragments)  # recomputed
 
     def test_atomgroup_fragment_cache_invalidation_bond_breaking(self):
@@ -213,6 +214,7 @@ class TestFragments(object):
         assert u.atoms._cache_key in u._cache["_valid"]["fragments"]
         u.delete_bonds((u.atoms.bonds[3],))  # should trigger invalidation
         assert "fragments" not in u._cache["_valid"]
+        assert u.atoms._cache_key in u._cache['_valid']['bonds']
         assert len(fgs) < len(u.atoms.fragments)  # recomputed
 
 
