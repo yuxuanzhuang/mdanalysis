@@ -1,7 +1,7 @@
 [build-system]
 # Minimum requirements for the build system to execute
 requires = [
-    "Cython>=0.28",
+    "Cython>=0.28,<3.1",
     "packaging",
     # numpy requirement for wheel builds for distribution on PyPI - building
     # against 2.x yields wheels that are also compatible with numpy 1.x at
@@ -38,11 +38,8 @@ dependencies = [
     'tqdm>=4.43.0',
     'threadpoolctl',
     'packaging',
-    'fasteners',
+    'filelock',
     'mda-xdrlib',
-    'waterdynamics',
-    'pathsimanalysis',
-    'mdahole2',
 ]
 keywords = [
     "python", "science", "chemistry", "biophysics", "molecular-dynamics",
@@ -78,7 +75,7 @@ extra_formats = [
     "pyedr>=0.7.0",
     "pytng>=0.2.3",
     "gsd>3.0.0",
-    "rdkit>=2020.03.1",
+    "rdkit>=2022.09.1",
     "gemmi", # for mmcif format
 ]
 analysis = [
@@ -87,6 +84,9 @@ analysis = [
     "scikit-learn",
     "tidynamics>=1.0.0",
     'networkx>=2.0',
+    'waterdynamics',
+    'pathsimanalysis',
+    'mdahole2',
 ]
 doc = [
     "sphinx",
@@ -127,16 +127,23 @@ MDAnalysis = [
 [tool.black]
 line-length = 79
 target-version = ['py310', 'py311', 'py312', 'py313']
-include = '''
+extend-exclude = '''
 (
-tables\.py
-| due\.py
-| setup\.py
-| MDAnalysis/auxiliary/.*\.py
-| MDAnalysis/visualization/.*\.py
-| MDAnalysis/lib/.*\.py^
-| MDAnalysis/transformations/.*\.py
+__pycache__ 
+| MDAnalysis/coordinates/DCD\.py
+| MDAnalysis/coordinates/TRJ\.py
+| MDAnalysis/coordinates/__init__\.py
+| MDAnalysis/analysis/hydrogenbonds/hbond_analysis\.py
+| MDAnalysis/coordinates/DLPoly\.py
+| MDAnalysis/coordinates/TRZ\.py
+| MDAnalysis/coordinates/__init__\.py
+| MDAnalysis/coordinates/base\.py
+| MDAnalysis/topology/tpr/utils\.py
+| MDAnalysis/coordinates/MMCIF\.py
+| MDAnalysis/topology/MMCIFParser\.py
+| MDAnalysis/topology/PDBParser\.py
+| MDAnalysis/topology/__init__\.py
+| .*\.pyx
 )
 '''
-extend-exclude = '__pycache__'
 required-version = '24'
