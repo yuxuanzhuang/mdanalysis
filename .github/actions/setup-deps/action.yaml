@@ -42,7 +42,7 @@ inputs:
   pip:
     default: 'pip'
   pytest:
-    default: 'pytest<9.0.0'
+    default: 'pytest'
   scipy:
     default: 'scipy'
   threadpoolctl:
@@ -57,7 +57,7 @@ inputs:
   clustalw:
     default: 'clustalw=2.1'
   dask:
-    default: 'dask'
+    default: 'dask<2025.11.0 '
   distopia:
     default: 'distopia>=0.4.0'
   h5py:
