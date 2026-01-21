@@ -57,7 +57,7 @@ inputs:
   clustalw:
     default: 'clustalw=2.1'
   dask:
-    default: 'dask<2025.11.0 '
+    default: 'dask'
   distopia:
     default: 'distopia>=0.4.0'
   h5py:

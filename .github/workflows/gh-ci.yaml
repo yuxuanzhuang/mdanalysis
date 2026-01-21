@@ -101,6 +101,7 @@ jobs:
         full-deps: ${{ matrix.full-deps }}
         # disable GSD because it occasionally introduce hanging in testing #4209
         gsd: ''
+        duecredit" ''
         # pin cython
         cython: ${{ matrix.cython }}
         # in most cases will just default to empty, i.e. pick up max version from other deps
